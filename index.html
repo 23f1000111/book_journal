@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Review Journal</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container" id="app-view">
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-book-open"></i>
+                <h1>Book Journal</h1>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-tab="journal">
+                    <i class="fa-solid fa-layer-group"></i> Journal
+                </li>
+                <li data-tab="analytics">
+                    <i class="fa-solid fa-chart-pie"></i> Analytics
+                </li>
+                <li data-tab="wishlist">
+                    <i class="fa-solid fa-bookmark"></i> Want to Read
+                </li>
+            </ul>
+            <div class="nav-footer">
+                <button id="logout-btn" class="btn-text warning"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- Journal View -->
+            <section id="journal-view" class="view active">
+                <header class="top-bar">
+                    <h2>My Reading Log</h2>
+                    <button id="add-review-btn" class="btn-primary">
+                        <i class="fa-solid fa-plus"></i> Add Review
+                    </button>
+                    <div class="header-actions" style="display:flex; gap:10px;">
+                        <button id="export-reviews-btn" class="btn-secondary">
+                            <i class="fa-solid fa-file-csv"></i> CSV
+                        </button>
+                        <button id="export-pdf-btn" class="btn-secondary">
+                            <i class="fa-solid fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </header>
+
+                <div class="reviews-container" id="reviews-list">
+                    <!-- Review Cards will be injected here -->
+                    <div class="empty-state">
+                        <p>No reviews yet. Start your journal!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics View -->
+            <section id="analytics-view" class="view hidden">
+                <header class="top-bar">
+                    <h2>Reading Insights</h2>
+                    <div class="controls">
+                        <select id="year-filter">
+                            <!-- Options populated dynamically -->
+                        </select>
+                        <button id="export-analytics-btn" class="btn-secondary">
+                            <i class="fa-solid fa-download"></i> Save Report
+                        </button>
+                    </div>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Books</h3>
+                        <p id="stat-total-books">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg Rating</h3>
+                        <p id="stat-avg-rating">0.0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Reading Days</h3>
+                        <p id="stat-reading-days">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Top Genre</h3>
+                        <p id="stat-top-genre">-</p>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Books per Month</h3>
+                        <canvas id="chart-books-month"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Rating Distribution</h3>
+                        <canvas id="chart-rating-dist"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Genre Distribution</h3>
+                        <canvas id="chart-genre-dist"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Pages Read (Trend)</h3> <!-- Or similar trend -->
+                        <canvas id="chart-trend"></canvas>
+                    </div>
+                </div>
+            </section>
+
+             <!-- Wishlist View -->
+             <section id="wishlist-view" class="view hidden">
+                <header class="top-bar">
+                    <h1>Want to Read</h1>
+                    <div class="actions">
+                        <button id="add-wishlist-btn" class="btn-primary"><i class="fa-solid fa-plus"></i> Add Book</button>
+                    </div>
+                </header>
+                <div id="wishlist-grid" class="wishlist-grid">
+                    <!-- Wishlist items rendered here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="review-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add Entry</h2>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="review-form">
+                <input type="hidden" id="review-id">
+                
+                <div class="form-group full-width photo-upload-group">
+                    <label for="book-cover-input" class="upload-label">
+                        <div class="upload-placeholder">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Upload Cover</span>
+                        </div>
+                        <img id="book-cover-preview" src="" alt="Cover Preview" class="hidden">
+                    </label>
+                    <input type="file" id="book-cover-input" accept="image/*" hidden>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Book Title</label>
+                        <input type="text" id="title" required placeholder="e.g. The Great Gatsby">
+                    </div>
+                    <div class="form-group">
+                        <label>Author</label>
+                        <input type="text" id="author" required placeholder="e.g. F. Scott Fitzgerald">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Genre</label>
+                        <select id="genre">
+                            <option value="Fiction">Fiction</option>
+                            <option value="Non-Fiction">Non-Fiction</option>
+                            <option value="Fantasy">Fantasy</option>
+                            <option value="Sci-Fi">Sci-Fi</option>
+                            <option value="Mystery">Mystery</option>
+                            <option value="Biography">Biography</option>
+                            <option value="History">History</option>
+                            <option value="Self-Help">Self-Help</option>
+                            <option value="Romance">Romance</option>
+                            <option value="Thriller">Thriller</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rating</label>
+                        <div class="star-rating-input" id="star-rating-input">
+                            <i class="fa-regular fa-star" data-value="1"></i>
+                            <i class="fa-regular fa-star" data-value="2"></i>
+                            <i class="fa-regular fa-star" data-value="3"></i>
+                            <i class="fa-regular fa-star" data-value="4"></i>
+                            <i class="fa-regular fa-star" data-value="5"></i>
+                        </div>
+                        <input type="hidden" id="rating-value" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="start-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Finished Date</label>
+                        <input type="date" id="end-date">
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Favorite Quote</label>
+                    <textarea id="quote" rows="2" placeholder="“A impactful line from the book...”"></textarea>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Review</label>
+                    <textarea id="review-text" rows="5" required placeholder="Your thoughts..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-text close-modal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Wishlist Modal -->
+    <div id="wishlist-modal" class="modal hidden">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h2 id="wishlist-modal-title">Add to Wishlist</h2>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="wishlist-form">
+                <input type="hidden" id="wishlist-id">
+                
+                <div class="form-group full-width photo-upload-group">
+                    <label for="wishlist-cover-input" class="upload-label">
+                         <div class="upload-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Upload Cover</span>
+                        </div>
+                        <div id="wishlist-cover-preview" class="image-preview hidden"></div>
+                    </label>
+                    <input type="file" id="wishlist-cover-input" accept="image/*" hidden>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Book Title</label>
+                    <input type="text" id="wishlist-title" required placeholder="e.g. The Great Gatsby">
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Author</label>
+                    <input type="text" id="wishlist-author" required placeholder="e.g. F. Scott Fitzgerald">
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Buy/View Link</label>
+                    <input type="url" id="wishlist-link" placeholder="https://amazon.com/...">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-text close-modal">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="analytics.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
