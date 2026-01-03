@@ -1003,6 +1003,34 @@ function setupEventListeners() {
             }
         });
     }
+
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const navLinksList = document.getElementById('nav-links-list');
+
+    if (mobileMenuBtn && navLinksList) {
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinksList.classList.toggle('show-mobile');
+            const icon = mobileMenuBtn.querySelector('i');
+            if (navLinksList.classList.contains('show-mobile')) {
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-xmark');
+            } else {
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            }
+        });
+        
+        // Auto-close on link click
+        navLinksList.querySelectorAll('li').forEach(li => {
+            li.addEventListener('click', () => {
+                navLinksList.classList.remove('show-mobile');
+                const icon = mobileMenuBtn.querySelector('i');
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            });
+        });
+    }
 }
 
 // Expose for Analytics

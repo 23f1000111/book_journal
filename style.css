@@ -61,6 +61,10 @@ body {
     font-size: 1.5rem;
 }
 
+.mobile-menu-toggle {
+    display: none;
+}
+
 .logo i {
     color: var(--accent);
     font-size: 1.5rem;
@@ -215,7 +219,8 @@ button {
 .card-cover img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: #f8f9fa;
 }
 
 .card-details {
@@ -539,29 +544,87 @@ input:focus, select:focus, textarea:focus {
     
     .sidebar {
         width: 100%;
-        padding: 1rem;
+        padding: 1rem 1.5rem;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
+        position: relative; /* Context for absolute dropdown */
+        z-index: 100;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     
     .logo {
         margin-bottom: 0;
     }
     
+    /* Hide nav links by default on mobile */
     .nav-links {
-        display: flex;
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: var(--bg-sidebar);
+        flex-direction: column;
+        padding: 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        border-top: 1px solid rgba(255,255,255,0.1);
     }
     
+    /* Show when toggled */
+    .nav-links.show-mobile {
+        display: flex;
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    /* Hamburger Button */
+    .mobile-menu-toggle {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Fix top bar header collisions */
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .top-bar .controls, .top-bar-actions {
+        width: 100%;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
     .review-card {
         flex-direction: column;
     }
     
     .card-cover {
         width: 100%;
-        height: 200px;
+        height: 180px; /* Reduced height for mobile */
     }
     
+    /* Wishlist Mobile Optimizations */
+    .wishlist-cover {
+        height: 200px; /* Reduce from 300px on desktop */
+    }
+    
+    .wishlist-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Allow smaller cards */
+        gap: 1rem;
+    }
+
     .modal-content {
         width: 100%;
         height: 100%;
@@ -596,7 +659,8 @@ input:focus, select:focus, textarea:focus {
 .wishlist-cover {
     width: 100%;
     height: 300px;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: #f8f9fa;
     border-bottom: 1px solid #eee;
 }
 
@@ -862,4 +926,58 @@ input:focus, select:focus, textarea:focus {
 
 #friend-reviews-list .review-item:last-child {
     border-bottom: none;
+}
+
+/* Mobile Overrides for Community UI */
+@media (max-width: 768px) {
+    .community-container {
+        padding-bottom: 5rem; /* Space for bottom nav if we had one, or just clearer spacing */
+    }
+
+    .add-friend-section {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-radius: 12px;
+    }
+
+    .add-friend-section h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    #add-friend-form {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #friend-email-input {
+        padding: 12px;
+        font-size: 1rem;
+    }
+
+    .friends-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .friend-card {
+        padding: 1rem;
+        gap: 1rem;
+        flex-direction: row; /* Keep row but tighter */
+        align-items: center;
+    }
+
+    .friend-avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+
+    .friend-info h4 {
+        font-size: 1.1rem;
+    }
+    
+    .friend-card::after {
+        display: none; /* Hide hover text on mobile */
+    }
 }
