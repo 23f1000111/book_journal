@@ -1,4 +1,4 @@
-import { auth, db, signOut, onAuthStateChanged, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, serverTimestamp } from './firebase-config.js';
+import { auth, db, signOut, onAuthStateChanged, collection, addDoc, getDocs, updateDoc, deleteDoc, setDoc, getDoc, doc, query, where, orderBy, serverTimestamp } from './firebase-config.js';
 
 // DOM Elements - Journal
 const appContainer = document.querySelector('.app-container');
@@ -28,6 +28,21 @@ const wishlistCoverPreview = document.getElementById('wishlist-cover-preview');
 const wishlistModalTitle = document.getElementById('wishlist-modal-title');
 const wishlistIdInput = document.getElementById('wishlist-id');
 
+// Goals Elements
+const editGoalBtn = document.getElementById('edit-goal-btn');
+const goalProgressBar = document.getElementById('goal-progress-bar');
+const goalText = document.getElementById('goal-text');
+
+// Community / Friend Elements
+const addFriendForm = document.getElementById('add-friend-form');
+const friendEmailInput = document.getElementById('friend-email-input');
+const friendsList = document.getElementById('friends-list');
+const friendModal = document.getElementById('friend-modal');
+const friendReviewsGrid = document.getElementById('friend-reviews-list');
+const friendGoalBar = document.getElementById('friend-goal-bar');
+const friendGoalText = document.getElementById('friend-goal-text');
+const friendModalTitle = document.getElementById('friend-modal-title');
+
 // Auth DOM Elements
 const logoutBtn = document.getElementById('logout-btn');
 const journalHeader = document.querySelector('#journal-view h2');
@@ -38,6 +53,8 @@ let currentWishlistCoverBase64 = null;
 let currentUser = null;
 let reviews = [];
 let wishlist = [];
+let yearlyGoal = 10; 
+let friends = [];
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -50,8 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Allow app to show
             appContainer.classList.remove('hidden');
 
+            // Initialize Search Profile
+            await updatePublicProfile(user);
+
             await fetchReviews();
             await fetchWishlist();
+            await fetchUserGoal();
+            await fetchFriends();
             setupEventListeners();
             
             // Initial Analytics Update
@@ -65,6 +87,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // --- Firestore Methods ---
+
+// Ensure user is searchable
+async function updatePublicProfile(user) {
+    if(!user.email) return;
+    try {
+        await setDoc(doc(db, 'public_profiles', user.email), {
+            uid: user.uid,
+            displayName: user.displayName || user.email.split('@')[0],
+            photoURL: user.photoURL
+        }, { merge: true });
+    } catch (e) {
+        console.error("Error updating public profile:", e);
+    }
+}
 
 async function fetchReviews() {
     if (!currentUser) return;
@@ -80,6 +116,7 @@ async function fetchReviews() {
             reviews.push({ id: doc.id, ...doc.data() });
         });
         renderReviews();
+        updateGoalProgress();
     } catch (e) {
         console.error("Error fetching reviews:", e);
         if (e.code === 'failed-precondition') {
@@ -92,6 +129,7 @@ async function fetchReviews() {
              });
              reviews.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
              renderReviews();
+             updateGoalProgress();
          }
     }
 }
@@ -108,6 +146,86 @@ async function fetchWishlist() {
         renderWishlist();
     } catch (e) {
         console.error("Error fetching wishlist:", e);
+    }
+}
+
+async function fetchUserGoal() {
+    if (!currentUser) return;
+    try {
+        const docRef = doc(db, `users/${currentUser.uid}/settings`, 'goals');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            yearlyGoal = docSnap.data().yearlyTarget || 10;
+        }
+        updateGoalProgress();
+    } catch (e) {
+        console.error("Error fetching goal:", e);
+    }
+}
+
+async function fetchFriends() {
+    if (!currentUser) return;
+    try {
+        const q = query(collection(db, `users/${currentUser.uid}/following`));
+        const querySnapshot = await getDocs(q);
+        friends = [];
+        querySnapshot.forEach((doc) => {
+            friends.push({ id: doc.id, ...doc.data() });
+        });
+        renderFriends();
+    } catch (e) {
+        console.error("Error fetching friends:", e);
+    }
+}
+
+async function addFriend(email) {
+    if (!currentUser) return;
+    if (email === currentUser.email) {
+        alert("You cannot follow yourself!");
+        return;
+    }
+    
+    try {
+        // 1. Find User by Email in public_profiles
+        const publicProfileRef = doc(db, 'public_profiles', email);
+        const profileSnap = await getDoc(publicProfileRef);
+        
+        if (!profileSnap.exists()) {
+            alert("User not found. Ask them to log in to Book Journal once!");
+            return;
+        }
+        
+        const friendData = profileSnap.data();
+        
+        // 2. Add to following
+        await setDoc(doc(db, `users/${currentUser.uid}/following`, friendData.uid), {
+            email: email,
+            displayName: friendData.displayName,
+            photoURL: friendData.photoURL
+        });
+        
+        alert(`You are now following ${friendData.displayName}!`);
+        friendEmailInput.value = '';
+        await fetchFriends();
+        
+    } catch (e) {
+        console.error("Error adding friend:", e);
+        alert("Failed to add friend.");
+    }
+}
+
+async function saveUserGoal(newGoal) {
+    if (!currentUser) return;
+    try {
+        await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), {
+            yearlyTarget: newGoal
+        }, { merge: true });
+        yearlyGoal = newGoal;
+        updateGoalProgress();
+        alert("Goal updated!");
+    } catch (e) {
+        console.error("Error saving goal:", e);
+        alert("Failed to save goal.");
     }
 }
 
@@ -132,7 +250,7 @@ async function saveReviewToFire(review) {
             await addDoc(collection(db, `users/${currentUser.uid}/reviews`), review);
             alert("Review saved successfully!");
         }
-        await fetchReviews();
+        await fetchReviews(); 
     } catch (e) {
         console.error("Error saving review:", e);
         let msg = "Failed to save review.";
@@ -240,6 +358,9 @@ function renderReviews() {
                 <p class="review-text">${review.review}</p>
                 
                 <div class="card-footer-actions">
+                     <button class="btn-icon share-review-btn" data-id="${review.id}" title="Share">
+                        <i class="fa-solid fa-share-nodes"></i>
+                     </button>
                      <button class="btn-icon print-review-btn" data-id="${review.id}" title="Print">
                         <i class="fa-solid fa-print"></i>
                     </button>
@@ -276,6 +397,14 @@ function renderReviews() {
             const id = e.currentTarget.dataset.id;
             const review = reviews.find(r => r.id === id);
             printReview(review);
+        });
+    });
+    
+     document.querySelectorAll('.share-review-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const review = reviews.find(r => r.id === id);
+            shareReview(review);
         });
     });
 
@@ -332,6 +461,99 @@ function renderWishlist() {
     });
 }
 
+function renderFriends() {
+    if (!friendsList) return;
+    friendsList.innerHTML = '';
+    
+    if (friends.length === 0) {
+        friendsList.innerHTML = '<p class="empty-text">You aren\'t following anyone yet.</p>';
+        return;
+    }
+
+    friends.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'friend-card';
+        card.addEventListener('click', () => openFriendModal(f));
+        
+        card.innerHTML = `
+            <div class="friend-avatar">
+                ${f.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div class="friend-info">
+                <h4>${f.displayName}</h4>
+                <p>${f.email}</p>
+            </div>
+        `;
+        friendsList.appendChild(card);
+    });
+}
+
+function updateGoalProgress() {
+    if (!goalProgressBar || !goalText) return;
+    const count = reviews.length;
+    let percentage = (count / yearlyGoal) * 100;
+    if (percentage > 100) percentage = 100;
+    
+    goalProgressBar.style.width = `${percentage}%`;
+    goalText.innerText = `${count} / ${yearlyGoal} books read`;
+}
+
+// --- Friend Interaction Logic ---
+
+async function openFriendModal(friend) {
+    if (!friendModal) return;
+    
+    friendModal.classList.remove('hidden');
+    friendModalTitle.innerText = `${friend.displayName}'s Journal`;
+    
+    // Reset Data
+    friendGoalBar.style.width = '0%';
+    friendGoalText.innerText = 'Loading...';
+    friendReviewsGrid.innerHTML = '<p>Loading reviews...</p>';
+    
+    try {
+        // Fetch Goal
+        const goalSnap = await getDoc(doc(db, `users/${friend.id}/settings`, 'goals'));
+        const fGoal = goalSnap.exists() ? (goalSnap.data().yearlyTarget || 10) : 10;
+        
+        // Fetch Reviews (Limited)
+        const q = query(collection(db, `users/${friend.id}/reviews`), orderBy('createdAt', 'desc')); // limit(5) optional
+        const reviewsSnap = await getDocs(q);
+        const fReviews = [];
+        reviewsSnap.forEach(d => fReviews.push(d.data()));
+        
+        // Update Goal UI
+        const count = fReviews.length;
+        let percentage = (count / fGoal) * 100;
+        if(percentage > 100) percentage = 100;
+        friendGoalBar.style.width = `${percentage}%`;
+        friendGoalText.innerText = `${count} / ${fGoal} books read`;
+        
+        // Render Reviews
+        friendReviewsGrid.innerHTML = '';
+        if(fReviews.length === 0) {
+            friendReviewsGrid.innerHTML = '<p class="empty-text">No reviews visible.</p>';
+        } else {
+            fReviews.forEach(r => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding: 0.8rem; border-bottom: 1px solid #eee; margin-bottom: 0.5rem;';
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>${r.title}</strong>
+                        <span>${'★'.repeat(Math.round(r.rating))}</span>
+                    </div>
+                    <p style="font-size:0.9rem; color:#666; margin: 0.2rem 0;">by ${r.author}</p>
+                    <p style="font-size:0.9rem; margin-top: 5px;">"${r.quote || 'No quote'}"</p>
+                `;
+                friendReviewsGrid.appendChild(item);
+            });
+        }
+    } catch(e) {
+        console.error("Error viewing friend:", e);
+        friendReviewsGrid.innerHTML = '<p class="error-text">Unable to load data. They might need to adjust privacy settings.</p>';
+    }
+}
+
 // --- Helper Functions ---
 function formatDate(dateVal) {
     if (!dateVal) return '';
@@ -344,9 +566,9 @@ function formatDate(dateVal) {
 function handleImageUpload(e) {
     const file = e.target.files[0];
     if (file) {
-        if (file.size > 800 * 1024) { // 800KB Limit
+        if (file.size > 800 * 1024) { 
             alert("Image is too large! Please choose an image under 800KB to save database space.");
-            e.target.value = ''; // Clear input
+            e.target.value = ''; 
             return;
         }
 
@@ -617,6 +839,25 @@ function exportReviewsToPDF() {
         });
 }
 
+function shareReview(review) {
+    if (navigator.share) {
+        navigator.share({
+            title: `Review: ${review.title}`,
+            text: `I just reviewed "${review.title}" by ${review.author}. I gave it ${review.rating} stars! "${review.quote}"`,
+            url: window.location.href
+        }).catch(err => {
+            console.log('Share failed:', err);
+        });
+    } else {
+        const text = `I just reviewed "${review.title}" by ${review.author}. I gave it ${review.rating} stars! "${review.quote}"`;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Review copied to clipboard!");
+        }).catch(() => {
+            alert("Failed to copy review.");
+        });
+    }
+}
+
 
 // --- Event Listeners ---
 function setupEventListeners() {
@@ -720,6 +961,7 @@ function setupEventListeners() {
         btn.addEventListener('click', () => {
             if(wishlistModal) wishlistModal.classList.add('hidden');
             if(modal) modal.classList.add('hidden');
+            if(friendModal) friendModal.classList.add('hidden');
         });
     });
 
@@ -740,6 +982,27 @@ function setupEventListeners() {
     }
     
     if(wishlistCoverInput) wishlistCoverInput.addEventListener('change', handleWishlistImageUpload);
+
+    // Goal Edit Listener
+    if (editGoalBtn) {
+        editGoalBtn.addEventListener('click', () => {
+            const newGoal = prompt("Enter your new yearly reading goal:", yearlyGoal);
+            if (newGoal && !isNaN(newGoal) && newGoal > 0) {
+                saveUserGoal(parseInt(newGoal));
+            }
+        });
+    }
+    
+    // Add Friend Listener
+    if(addFriendForm) {
+        addFriendForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = friendEmailInput.value.trim();
+            if(email) {
+                await addFriend(email);
+            }
+        });
+    }
 }
 
 // Expose for Analytics

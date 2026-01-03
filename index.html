@@ -40,6 +40,9 @@
                 <li data-tab="wishlist">
                     <i class="fa-solid fa-bookmark"></i> Want to Read
                 </li>
+                <li data-tab="community">
+                    <i class="fa-solid fa-users"></i> Community
+                </li>
             </ul>
             <div class="nav-footer">
                 <button id="logout-btn" class="btn-text warning"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
@@ -87,6 +90,17 @@
                         </button>
                     </div>
                 </header>
+
+                <div class="goals-section" style="margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-soft); border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; font-family: var(--font-heading);">Yearly Reading Goal</h3>
+                        <button id="edit-goal-btn" class="btn-text" style="font-size: 0.9rem;">Edit Goal</button>
+                    </div>
+                    <div class="progress-container" style="background: #f0f0f0; border-radius: 10px; height: 20px; overflow: hidden; position: relative;">
+                        <div id="goal-progress-bar" style="background: var(--accent); width: 0%; height: 100%; transition: width 0.5s ease;"></div>
+                    </div>
+                    <p id="goal-text" style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">0 / 0 books read</p>
+                </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -137,6 +151,31 @@
                 </header>
                 <div id="wishlist-grid" class="wishlist-grid">
                     <!-- Wishlist items rendered here -->
+                </div>
+            </section>
+
+             <!-- Community View -->
+             <section id="community-view" class="view hidden">
+                <header class="top-bar">
+                    <h1>Community</h1>
+                </header>
+                
+                <div class="community-container">
+                    <!-- Add Friend Section -->
+                    <div class="add-friend-section">
+                        <h3>Follow a Reader</h3>
+                        <form id="add-friend-form">
+                            <input type="email" id="friend-email-input" placeholder="Enter friend's email..." required>
+                            <button type="submit" class="btn-primary">Follow</button>
+                        </form>
+                    </div>
+
+                    <!-- Friends List -->
+                    <h3 style="font-family: var(--font-heading); margin-bottom: 1.5rem; padding-left: 0.5rem; border-left: 4px solid var(--primary);">Following</h3>
+                    <div id="friends-list" class="friends-grid">
+                        <!-- Friend Cards Injected Here -->
+                        <p class="empty-text">You aren't following anyone yet.</p>
+                    </div>
                 </div>
             </section>
         </main>
@@ -274,6 +313,33 @@
                     <button type="submit" class="btn-primary">Save Book</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Friend Detail Modal -->
+    <div id="friend-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+             <div class="modal-header">
+                <h2 id="friend-modal-title">Friend's Journal</h2>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="friend-modal-body">
+                <!-- Goal Stats -->
+                <div class="friend-stats" style="margin-bottom: 2rem; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                    <h3 style="margin-top:0;">Progress</h3>
+                    <div class="progress-container" style="background: #e9ecef; border-radius: 10px; height: 15px; overflow: hidden; margin-top: 0.5rem;">
+                        <div id="friend-goal-bar" style="background: var(--accent); width: 0%; height: 100%;"></div>
+                    </div>
+                     <p id="friend-goal-text" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">Loading...</p>
+                </div>
+
+                <!-- Recent Reviews -->
+                <h3>Recent Reviews</h3>
+                <div id="friend-reviews-list" class="reviews-container" style="margin-top: 1rem; max-height: 400px; overflow-y: auto;">
+                    <!-- Friend Reviews Injected Here -->
+                </div>
+            </div>
         </div>
     </div>
 
