@@ -80,7 +80,7 @@ function updateCharts(reviews) {
 
     // Process data
     const monthCounts = new Array(12).fill(0);
-    const ratingCounts = new Array(5).fill(0);
+    const ratingCounts = new Array(10).fill(0);
     const genreCounts = {};
 
     filteredReviews.forEach(r => {
@@ -91,9 +91,14 @@ function updateCharts(reviews) {
             monthCounts[month]++;
         }
 
-        // Ratings
-        if (r.rating >= 1 && r.rating <= 5) {
-            ratingCounts[r.rating - 1]++;
+        // Ratings (0.5 to 5.0)
+        if (r.rating >= 0.5 && r.rating <= 5) {
+            // Map 0.5->0, 1.0->1, 1.5->2 ... 5.0->9
+            // Formula: (rating * 2) - 1
+            const index = Math.round(r.rating * 2) - 1;
+            if (index >= 0 && index < 10) {
+                ratingCounts[index]++;
+            }
         }
 
         // Genres
@@ -115,11 +120,17 @@ function updateCharts(reviews) {
 
     // 2. Rating Distribution
     renderChart(ctx2, 'ratingDist', 'bar', {
-        labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+        labels: ['0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5'],
         datasets: [{
             label: 'Count',
             data: ratingCounts,
-            backgroundColor: ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db'],
+            backgroundColor: [
+                '#c0392b', '#e74c3c', // Reds
+                '#d35400', '#e67e22', // Oranges
+                '#f39c12', '#f1c40f', // Yellows
+                '#27ae60', '#2ecc71', // Greens
+                '#2980b9', '#3498db'  // Blues
+            ],
             borderRadius: 4
         }]
     });
@@ -166,6 +177,8 @@ function renderChart(canvas, id, type, data) {
     // Global styling
     Chart.defaults.font.family = "'Outfit', sans-serif";
     Chart.defaults.color = '#7f8c8d';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.scale.grid.borderColor = '#f0f0f0'; // Subtle border
 
     charts[id] = new Chart(canvas, {
         type: type,
@@ -176,17 +189,38 @@ function renderChart(canvas, id, type, data) {
             plugins: {
                 legend: {
                     display: type === 'doughnut',
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#2c3e50',
+                    bodyColor: '#2c3e50',
+                    borderColor: '#eee',
+                    borderWidth: 1,
+                    padding: 10,
+                    boxPadding: 4,
+                    usePointStyle: true,
+                     titleFont: { family: "'Outfit', sans-serif", weight: '600' }
                 }
             },
             scales: (type === 'doughnut') ? {} : {
                 y: {
                     beginAtZero: true,
-                    ticks: { stepSize: 1 }
+                    ticks: { stepSize: 1, padding: 10 },
+                    grid: { color: '#f0f0f0', drawBorder: false }
                 },
                 x: {
-                    grid: { display: false }
+                    grid: { display: false, drawBorder: false }
                 }
+            },
+            elements: {
+                line: { cubicInterpolationMode: 'monotone' },
+                bar: { borderRadius: 4 }
             }
         }
     });
@@ -276,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (yearFilter) {
         yearFilter.addEventListener('change', () => {
             if (window.updateAnalytics) window.updateAnalytics();
+            if (window.updateGoalProgress) window.updateGoalProgress(yearFilter.value);
         });
     }
 });

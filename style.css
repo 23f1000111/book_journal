@@ -181,31 +181,33 @@ button {
     color: var(--text-main);
 }
 
-/* Reviews List */
+/* Reviews List - Grid Layout */
 .reviews-container {
     flex: 1;
     overflow-y: auto;
-    padding-right: 1rem;
-    display: flex;
-    flex-direction: column;
+    padding-right: 0.5rem; /* Reduced padding */
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 Column Grid */
     gap: 1.5rem;
+    align-content: start; /* Prevent stretching if few items */
 }
 
 /* Review Card */
 .review-card {
     background: var(--bg-card);
     border-radius: 12px;
-    padding: 1.5rem;
-    display: flex;
-    gap: 1.5rem;
+    padding: 1.2rem;
+    display: flex; /* Keep internal flex layout (img + content) */
+    gap: 1.2rem;
     box-shadow: var(--shadow-soft);
     border: 1px solid var(--border-color);
     transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
+    height: 100%; /* Match height of neighbors */
 }
 
 .review-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow-hover);
 }
 
@@ -984,5 +986,246 @@ input:focus, select:focus, textarea:focus {
     
     .friend-card::after {
         display: none; /* Hide hover text on mobile */
+    }
+
+    .btn-outlined-sm {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Grid Fallback for Mobile */
+    .reviews-container {
+        grid-template-columns: 1fr;
+    }
+}
+/* --- Classic Dashboard Layout --- */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+    max-width: 1400px; /* Prevent over-stretching on huge screens */
+    margin: 0 auto;
+}
+
+/* Card Base */
+.dashboard-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2sease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Row 1: Compact Stats --- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+.stat-card-compact {
+    flex-direction: row;
+    align-items: center;
+    padding: 1.2rem;
+    gap: 1rem;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+/* Soft Icon Colors */
+.color-blue-soft { background: #e3f2fd; color: #1976d2; }
+.color-yellow-soft { background: #fff8e1; color: #ffa000; }
+.color-green-soft { background: #e8f5e9; color: #388e3c; }
+.color-purple-soft { background: #f3e5f5; color: #7b1fa2; }
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.stat-content h4 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1;
+    font-family: var(--font-heading);
+}
+
+/* --- Row 2: Yearly Goal Hero --- */
+.goal-row {
+    width: 100%;
+}
+
+.hero-card-wide {
+    padding: 1.8rem 2rem;
+    background: linear-gradient(to right, #ffffff, #fcfcfc);
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 0.3rem;
+}
+
+.goal-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.btn-outlined-sm {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outlined-sm:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(230, 126, 34, 0.05);
+}
+
+.goal-visualization {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.goal-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.big-stat {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    color: var(--text-main);
+}
+
+.stat-suffix {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Row 3: Charts Grid --- */
+.charts-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.chart-card-std {
+    height: 380px;
+}
+
+.card-header-simple {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #f5f5f5;
+    padding-bottom: 0.8rem;
+}
+
+.card-header-simple h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-wrapper {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    min-height: 0;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 1100px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        grid-template-columns: 1fr; /* Stack stats vertical on phone */
+        gap: 1rem;
+    }
+    
+    .charts-row {
+        grid-template-columns: 1fr; /* Stack charts */
+    }
+    
+    .hero-card-wide {
+        padding: 1.5rem;
+    }
+    
+    .goal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .btn-outlined-sm {
+        width: 100%;
+        text-align: center;
     }
 }

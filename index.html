@@ -20,6 +20,7 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+
 </head>
 <body>
 
@@ -80,66 +81,118 @@
                 </div>
             </section>
 
-            <!-- Analytics View -->
+            <!-- Analytics View: Dashboard Design -->
             <section id="analytics-view" class="view hidden">
                 <header class="top-bar">
-                    <h2>Reading Insights</h2>
+                    <div>
+                        <h2>Reading Insights</h2>
+                        <p style="color:var(--text-muted); font-size: 0.95rem; margin-top: 5px;">Your literary journey at a glance</p>
+                    </div>
                     <div class="controls">
                         <select id="year-filter">
                             <!-- Options populated dynamically -->
                         </select>
                         <button id="export-analytics-btn" class="btn-secondary">
-                            <i class="fa-solid fa-download"></i> Save Report
+                            <i class="fa-solid fa-download"></i> Report
                         </button>
                     </div>
                 </header>
 
-                <div class="goals-section" style="margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow-soft); border: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="margin: 0; font-family: var(--font-heading);">Yearly Reading Goal</h3>
-                        <button id="edit-goal-btn" class="btn-text" style="font-size: 0.9rem;">Edit Goal</button>
-                    </div>
-                    <div class="progress-container" style="background: #f0f0f0; border-radius: 10px; height: 20px; overflow: hidden; position: relative;">
-                        <div id="goal-progress-bar" style="background: var(--accent); width: 0%; height: 100%; transition: width 0.5s ease;"></div>
-                    </div>
-                    <p id="goal-text" style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">0 / 0 books read</p>
-                </div>
+                <div class="dashboard-container">
+                    <!-- Row 1: Key Stats (High Density) -->
+                    <div class="stats-row">
+                        <div class="dashboard-card stat-card-compact">
+                            <div class="stat-icon color-blue-soft"><i class="fa-solid fa-book"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">Total Books</span>
+                                <h4 id="stat-total-books">0</h4>
+                            </div>
+                        </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Total Books</h3>
-                        <p id="stat-total-books">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Avg Rating</h3>
-                        <p id="stat-avg-rating">0.0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Reading Days</h3>
-                        <p id="stat-reading-days">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Top Genre</h3>
-                        <p id="stat-top-genre">-</p>
-                    </div>
-                </div>
+                        <div class="dashboard-card stat-card-compact">
+                            <div class="stat-icon color-yellow-soft"><i class="fa-solid fa-star"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">Avg Rating</span>
+                                <h4 id="stat-avg-rating">0.0</h4>
+                            </div>
+                        </div>
 
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>Books per Month</h3>
-                        <canvas id="chart-books-month"></canvas>
+                        <div class="dashboard-card stat-card-compact">
+                            <div class="stat-icon color-green-soft"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">Reading Days</span>
+                                <h4 id="stat-reading-days">0</h4>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card stat-card-compact">
+                            <div class="stat-icon color-purple-soft"><i class="fa-solid fa-masks-theater"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-label">Top Genre</span>
+                                <h4 id="stat-top-genre">-</h4>
+                            </div>
+                        </div>
                     </div>
-                    <div class="chart-card">
-                        <h3>Rating Distribution</h3>
-                        <canvas id="chart-rating-dist"></canvas>
+
+                    <!-- Row 2: Goal Hero -->
+                    <div class="goal-row">
+                        <div class="dashboard-card hero-card-wide">
+                            <div class="goal-header">
+                                <div class="goal-info">
+                                    <h3 class="card-title">Yearly Reading Goal</h3>
+                                    <p class="goal-subtitle">Tracking your progress for 2026</p>
+                                </div>
+                                <button id="edit-goal-btn" class="btn-outlined-sm">Edit Goal</button>
+                            </div>
+                            <div class="goal-visualization">
+                                <div class="goal-stats">
+                                    <span id="goal-text" class="big-stat">0 / 0</span>
+                                    <span class="stat-suffix">books</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div id="goal-progress-bar" class="progress-fill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="chart-card">
-                        <h3>Genre Distribution</h3>
-                        <canvas id="chart-genre-dist"></canvas>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Pages Read (Trend)</h3> <!-- Or similar trend -->
-                        <canvas id="chart-trend"></canvas>
+
+                    <!-- Row 3: Charts Grid -->
+                    <div class="charts-row">
+                         <div class="dashboard-card chart-card-std">
+                            <div class="card-header-simple">
+                                <h3>Books per Month</h3>
+                            </div>
+                            <div class="chart-wrapper">
+                                 <canvas id="chart-books-month"></canvas>
+                            </div>
+                        </div>
+
+                         <div class="dashboard-card chart-card-std">
+                            <div class="card-header-simple">
+                                <h3>Cumulative Trend</h3>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-trend"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card chart-card-std">
+                            <div class="card-header-simple">
+                                <h3>Rating Distribution</h3>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-rating-dist"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card chart-card-std">
+                            <div class="card-header-simple">
+                                <h3>Genre Distribution</h3>
+                            </div>
+                             <div class="chart-wrapper">
+                                <canvas id="chart-genre-dist"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

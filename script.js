@@ -53,7 +53,8 @@ let currentWishlistCoverBase64 = null;
 let currentUser = null;
 let reviews = [];
 let wishlist = [];
-let yearlyGoal = 10; 
+let yearlyGoals = {}; // Map of year -> goal
+let currentYearFilter = new Date().getFullYear(); 
 let friends = [];
 
 // --- Initialization ---
@@ -116,7 +117,7 @@ async function fetchReviews() {
             reviews.push({ id: doc.id, ...doc.data() });
         });
         renderReviews();
-        updateGoalProgress();
+        updateGoalProgress(currentYearFilter);
     } catch (e) {
         console.error("Error fetching reviews:", e);
         if (e.code === 'failed-precondition') {
@@ -129,7 +130,7 @@ async function fetchReviews() {
              });
              reviews.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
              renderReviews();
-             updateGoalProgress();
+             updateGoalProgress(currentYearFilter);
          }
     }
 }
@@ -155,9 +156,15 @@ async function fetchUserGoal() {
         const docRef = doc(db, `users/${currentUser.uid}/settings`, 'goals');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            yearlyGoal = docSnap.data().yearlyTarget || 10;
+             // Support legacy format (single yearlyTarget) by assigning it to current year if exists
+            const data = docSnap.data();
+            if (data.yearlyTargets) {
+                yearlyGoals = data.yearlyTargets;
+            } else if (data.yearlyTarget) {
+                yearlyGoals[new Date().getFullYear()] = data.yearlyTarget;
+            }
         }
-        updateGoalProgress();
+        updateGoalProgress(currentYearFilter);
     } catch (e) {
         console.error("Error fetching goal:", e);
     }
@@ -214,15 +221,17 @@ async function addFriend(email) {
     }
 }
 
-async function saveUserGoal(newGoal) {
+async function saveUserGoal(year, newGoal) {
     if (!currentUser) return;
     try {
-        await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), {
-            yearlyTarget: newGoal
-        }, { merge: true });
-        yearlyGoal = newGoal;
-        updateGoalProgress();
-        alert("Goal updated!");
+        const updateData = {};
+        updateData[`yearlyTargets.${year}`] = newGoal;
+
+        await setDoc(doc(db, `users/${currentUser.uid}/settings`, 'goals'), updateData, { merge: true });
+        
+        yearlyGoals[year] = newGoal;
+        updateGoalProgress(year);
+        alert(`Goal for ${year} updated!`);
     } catch (e) {
         console.error("Error saving goal:", e);
         alert("Failed to save goal.");
@@ -427,9 +436,9 @@ function renderWishlist() {
         
         card.innerHTML = `
             <img src="${coverSrc}" alt="${item.title}" class="wishlist-cover">
-            <div class="wishlist-info">
-                <h4>${item.title}</h4>
-                <p>${item.author}</p>
+            <div class="wishlist-details">
+                <h4 class="wishlist-title">${item.title}</h4>
+                <p class="wishlist-author">${item.author}</p>
                 ${item.link ? `<a href="${item.link}" target="_blank" class="btn-text" style="padding-left:0; text-align:left;">View Book</a>` : ''}
             </div>
             <div class="wishlist-actions">
@@ -488,14 +497,34 @@ function renderFriends() {
     });
 }
 
-function updateGoalProgress() {
+
+// Exposed for Analytics to call when filter changes
+window.updateGoalProgress = function(year) {
+    currentYearFilter = parseInt(year) || new Date().getFullYear();
+    updateGoalProgress(currentYearFilter);
+}
+
+function updateGoalProgress(year) {
     if (!goalProgressBar || !goalText) return;
-    const count = reviews.length;
-    let percentage = (count / yearlyGoal) * 100;
+    
+    const targetYear = year || new Date().getFullYear();
+    const targetGoal = yearlyGoals[targetYear] || 10; // Default to 10 if not set
+
+    // Count books finished in this year
+    const count = reviews.filter(r => {
+        if (!r.endDate) return false;
+        return new Date(r.endDate).getFullYear() === targetYear;
+    }).length;
+
+    let percentage = (count / targetGoal) * 100;
     if (percentage > 100) percentage = 100;
     
     goalProgressBar.style.width = `${percentage}%`;
-    goalText.innerText = `${count} / ${yearlyGoal} books read`;
+    goalText.innerText = `${count} / ${targetGoal} books read in ${targetYear}`;
+    
+    // Update the heading to reflect the year
+    const goalHeading = document.querySelector('.goals-section h3');
+    if(goalHeading) goalHeading.textContent = `${targetYear} Reading Goal`;
 }
 
 // --- Friend Interaction Logic ---
@@ -986,9 +1015,13 @@ function setupEventListeners() {
     // Goal Edit Listener
     if (editGoalBtn) {
         editGoalBtn.addEventListener('click', () => {
-            const newGoal = prompt("Enter your new yearly reading goal:", yearlyGoal);
+            // Get currently selected year from the UI if possible, or use current state
+            const year = currentYearFilter;
+            const currentGoal = yearlyGoals[year] || 10;
+            
+            const newGoal = prompt(`Enter reading goal for ${year}:`, currentGoal);
             if (newGoal && !isNaN(newGoal) && newGoal > 0) {
-                saveUserGoal(parseInt(newGoal));
+                saveUserGoal(year, parseInt(newGoal));
             }
         });
     }
