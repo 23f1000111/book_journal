@@ -165,7 +165,7 @@ async function handleIncomingShare() {
         }
 
         // 3. Open Modal Immediately (User sees something happening)
-        if(window.openWishlistModal) window.openWishlistModal();
+        openWishlistModal();
         
         // Set Link immediately
         setTimeout(() => {
