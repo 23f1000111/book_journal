@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // END: Handle Share Target (Moved to function)
 });
 
-function handleIncomingShare() {
+async function handleIncomingShare() {
     // START: Handle Share Target (Incoming Data from other apps)
     const urlParams = new URLSearchParams(window.location.search);
     const sharedTitle = urlParams.get('title');
@@ -134,55 +134,132 @@ function handleIncomingShare() {
     const sharedUrl = urlParams.get('url');
 
     if (sharedTitle || sharedText || sharedUrl) {
-        // If we have shared data, assume user wants to add to wishlist
         console.log("Received Share Data:", { sharedTitle, sharedText, sharedUrl });
 
-        // Wait a brief moment for Auth/UI to settle, then open modal
+        // 1. Switch to Wishlist View
+        // Wait for UI
+        await new Promise(r => setTimeout(r, 500)); 
+        const wishlistTab = document.querySelector('li[data-tab="wishlist"]');
+        if(wishlistTab) wishlistTab.click();
+
+        // 2. Parse Basic Info
+        let query = sharedTitle || '';
+        let bookLink = sharedUrl || '';
+        
+        // Extract URL from text if needed
+        if (!bookLink && sharedText) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const matches = sharedText.match(urlRegex);
+            if (matches) bookLink = matches[0];
+        }
+
+        // Clean Text to get a Search Query (Title)
+        if (!query && sharedText) {
+             let cleanText = sharedText;
+             if(bookLink) cleanText = cleanText.replace(bookLink, '');
+             // Remove common share garbage
+             cleanText = cleanText.replace(/Check out this book:?/i, '');
+             cleanText = cleanText.replace(/I found this book on Amazon:?/i, '');
+             cleanText = cleanText.trim();
+             query = cleanText;
+        }
+
+        // 3. Open Modal Immediately (User sees something happening)
+        if(window.openWishlistModal) window.openWishlistModal();
+        
+        // Set Link immediately
         setTimeout(() => {
-            // 1. Switch to Wishlist View
-            const wishlistTab = document.querySelector('li[data-tab="wishlist"]');
-            if(wishlistTab) wishlistTab.click();
+             const linkInput = document.getElementById('wishlist-link');
+             const titleInput = document.getElementById('wishlist-title');
+             if(linkInput && bookLink) linkInput.value = bookLink;
+             if(titleInput) {
+                 titleInput.value = "Searching book details...";
+                 titleInput.disabled = true;
+             }
+        }, 100);
 
-            // 2. Prepare Data
-            // Many apps share "Title - URL" in the text field, or just URL in text.
-            let bookTitle = sharedTitle || '';
-            let bookLink = sharedUrl || '';
-            
-            // Fallback parsing for "text" field if it contains a URL
-            if (!bookLink && sharedText) {
-                const urlRegex = /(https?:\/\/[^\s]+)/g;
-                const matches = sharedText.match(urlRegex);
-                if (matches) {
-                    bookLink = matches[0];
-                    // If title is missing, use the non-url part of text as title
-                    if (!bookTitle) {
-                         // Clean common prefixes
-                        let cleanText = sharedText.replace(bookLink, '').trim();
-                        // Common android share prefixes like "Check out this book:"
-                        cleanText = cleanText.replace(/Check out this book:?/i, '').trim();
-                        bookTitle = cleanText;
-                    }
-                } else if (!bookTitle) {
-                     // No URL found, treat entire text as title
-                    bookTitle = sharedText;
+        // 4. FETCH METADATA (The Magic Fix)
+        // Use Google Books API to turn "Title/Text" into real data
+        if (query) {
+            try {
+                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                if (data.items && data.items.length > 0) {
+                    const book = data.items[0].volumeInfo;
+                    
+                    // Populate Fields
+                     setTimeout(() => {
+                        const titleInput = document.getElementById('wishlist-title');
+                        const authorInput = document.getElementById('wishlist-author');
+                        
+                        if(titleInput) {
+                             titleInput.value = book.title;
+                             titleInput.disabled = false;
+                        }
+                        if(authorInput && book.authors) authorInput.value = book.authors[0];
+                        
+                        // Handle Image
+                        if (book.imageLinks && book.imageLinks.thumbnail) {
+                            // High res if possible
+                            let imgUrl = book.imageLinks.thumbnail.replace('http:', 'https:');
+                            // Try to get a cleaner image by removing zoom params if present, though google APIs are tricky.
+                            // Just use the one provided.
+                            
+                            // To save it, we might need to fetch it and convert to Blob? 
+                            // For now, let's display it. The user might need to save it manually or we convert to Base64.
+                            // Let's try to convert to Base64 automatically so it saves to Firebase.
+                            fetch(imgUrl)
+                                .then(r => r.blob())
+                                .then(blob => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        currentWishlistCoverBase64 = reader.result;
+                                        if(wishlistCoverPreview) {
+                                            wishlistCoverPreview.innerHTML = `<img src="${currentWishlistCoverBase64}" style="width:100%; height:100%; object-fit:cover;">`;
+                                            wishlistCoverPreview.classList.remove('hidden');
+                                            const p = wishlistCoverPreview.parentElement.querySelector('.upload-placeholder');
+                                            if(p) p.classList.add('hidden');
+                                        }
+                                    };
+                                    reader.readAsDataURL(blob);
+                                })
+                                .catch(e => console.log("Could not auto-fetch image blob", e));
+                        }
+                     }, 200);
+                } else {
+                    // No results, revert to raw text
+                     setTimeout(() => {
+                        const titleInput = document.getElementById('wishlist-title');
+                        if(titleInput) {
+                            titleInput.value = query;
+                            titleInput.disabled = false;
+                        }
+                     }, 200);
                 }
+            } catch (e) {
+                console.error("API Error", e);
+                 // Error, revert to raw text
+                 setTimeout(() => {
+                    const titleInput = document.getElementById('wishlist-title');
+                    if(titleInput) {
+                        titleInput.value = query;
+                        titleInput.disabled = false;
+                    }
+                 }, 200);
             }
-
-            // 3. Open Modal and Fill
-             openWishlistModal(); // Opens empty
-             // Now fill it
+        } else {
              setTimeout(() => {
                  const titleInput = document.getElementById('wishlist-title');
-                 const linkInput = document.getElementById('wishlist-link');
-                 
-                 if(titleInput && bookTitle) titleInput.value = bookTitle;
-                 if(linkInput && bookLink) linkInput.value = bookLink;
-             }, 100);
-            
-            // Clean URL so refresh doesn't trigger again
-            window.history.replaceState({}, document.title, window.location.pathname);
+                 if(titleInput) {
+                     titleInput.value = ""; // No query found
+                     titleInput.disabled = false;
+                 }
+             }, 200);
+        }
 
-        }, 500); // reduced delay as we are inside auth block
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
