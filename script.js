@@ -27,6 +27,8 @@ const wishlistCoverInput = document.getElementById('wishlist-cover-input');
 const wishlistCoverPreview = document.getElementById('wishlist-cover-preview');
 const wishlistModalTitle = document.getElementById('wishlist-modal-title');
 const wishlistIdInput = document.getElementById('wishlist-id');
+const shareWishlistBtn = document.getElementById('share-wishlist-btn');
+const exportWishlistPdfBtn = document.getElementById('export-wishlist-pdf-btn');
 
 // Goals Elements
 const editGoalBtn = document.getElementById('edit-goal-btn');
@@ -1067,7 +1069,79 @@ function shareReview(review) {
 
 
 // --- Event Listeners ---
+    // START: Wishlist Share & Export
+    function shareWishlist() {
+        if(!wishlist || wishlist.length === 0) {
+            alert("Your wishlist is empty!");
+            return;
+        }
+
+        let text = "📚 My Want to Read List:\n\n";
+        wishlist.forEach(book => {
+            text += `- ${book.title} by ${book.author}\n`;
+            if(book.link) text += `  ${book.link}\n`;
+            text += "\n";
+        });
+
+        if (navigator.share) {
+            navigator.share({
+                title: 'My Book Wishlist',
+                text: text
+            }).catch(err => console.log('Error sharing:', err));
+        } else {
+            // Fallback
+            navigator.clipboard.writeText(text).then(() => {
+                alert("List copied to clipboard!");
+            });
+        }
+    }
+
+    function exportWishlistPdf() {
+         if(!wishlist || wishlist.length === 0) {
+            alert("Your wishlist is empty!");
+            return;
+        }
+        
+        // Create a temporary element for PDF generation
+        const element = document.createElement('div');
+        element.innerHTML = `
+            <div style="padding: 20px; font-family: sans-serif;">
+                <h1 style="text-align: center; margin-bottom: 20px;">My Want To Read List</h1>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                    ${wishlist.map(book => `
+                        <div style="border: 1px solid #ddd; padding: 10px; display: flex; gap: 15px; align-items: start;">
+                            ${book.cover ? `<img src="${book.cover}" style="width: 60px; height: 90px; object-fit: cover;">` : ''}
+                            <div>
+                                <h3 style="margin: 0 0 5px 0;">${book.title}</h3>
+                                <p style="margin: 0; color: #555;">by ${book.author}</p>
+                                ${book.link ? `<a href="${book.link}" style="font-size: 0.8rem; color: blue;">Link</a>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        const opt = {
+            margin:       10,
+            filename:     'my-wishlist.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }
+    // END: Wishlist Share & Export
+
 function setupEventListeners() {
+    // Wishlist Share/PDF Listeners
+    if(shareWishlistBtn) {
+        shareWishlistBtn.addEventListener('click', shareWishlist);
+    }
+    if(exportWishlistPdfBtn) {
+        exportWishlistPdfBtn.addEventListener('click', exportWishlistPdf);
+    }
     // Navigation
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
