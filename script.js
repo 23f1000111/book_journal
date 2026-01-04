@@ -84,6 +84,64 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+
+    // START: Handle Share Target (Incoming Data from other apps)
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedTitle = urlParams.get('title');
+    const sharedText = urlParams.get('text');
+    const sharedUrl = urlParams.get('url');
+
+    if (sharedTitle || sharedText || sharedUrl) {
+        // If we have shared data, assume user wants to add to wishlist
+        console.log("Received Share Data:", { sharedTitle, sharedText, sharedUrl });
+
+        // Wait a brief moment for Auth/UI to settle, then open modal
+        setTimeout(() => {
+            // 1. Switch to Wishlist View
+            const wishlistTab = document.querySelector('li[data-tab="wishlist"]');
+            if(wishlistTab) wishlistTab.click();
+
+            // 2. Prepare Data
+            // Many apps share "Title - URL" in the text field, or just URL in text.
+            let bookTitle = sharedTitle || '';
+            let bookLink = sharedUrl || '';
+            
+            // Fallback parsing for "text" field if it contains a URL
+            if (!bookLink && sharedText) {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                const matches = sharedText.match(urlRegex);
+                if (matches) {
+                    bookLink = matches[0];
+                    // If title is missing, use the non-url part of text as title
+                    if (!bookTitle) {
+                        bookTitle = sharedText.replace(bookLink, '').trim();
+                    }
+                } else if (!bookTitle) {
+                     // No URL found, treat entire text as title
+                    bookTitle = sharedText;
+                }
+            }
+
+            // 3. Open Modal and Fill
+            if(window.openWishlistModal) {
+                 window.openWishlistModal(); // Opens empty
+                 // Now fill it
+                 setTimeout(() => {
+                     const titleInput = document.getElementById('wishlist-title');
+                     const linkInput = document.getElementById('wishlist-link');
+                     
+                     if(titleInput && bookTitle) titleInput.value = bookTitle;
+                     if(linkInput && bookLink) linkInput.value = bookLink;
+                 }, 100);
+            }
+            
+            // Clean URL so refresh doesn't trigger again
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+        }, 1500); // 1.5s delay to ensure auth state is resolved and UI rendered
+    }
+    // END: Handle Share Target
 });
 
 
