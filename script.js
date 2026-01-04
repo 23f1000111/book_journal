@@ -158,17 +158,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 3. Open Modal and Fill
-            if(window.openWishlistModal) {
-                 window.openWishlistModal(); // Opens empty
-                 // Now fill it
-                 setTimeout(() => {
-                     const titleInput = document.getElementById('wishlist-title');
-                     const linkInput = document.getElementById('wishlist-link');
-                     
-                     if(titleInput && bookTitle) titleInput.value = bookTitle;
-                     if(linkInput && bookLink) linkInput.value = bookLink;
-                 }, 100);
-            }
+            // Since we are in the module, call function directly. 
+            // openWishlistModal is hoisted or available if defined in this scope.
+            // (Wait, openWishlistModal is function decl at bottom? Yes, hoisted in module scope?) 
+            // Actually function declarations are block-scoped in strict mode (modules are strict).
+            // But top level is fine.
+            
+             openWishlistModal(); // Opens empty
+             // Now fill it
+             setTimeout(() => {
+                 const titleInput = document.getElementById('wishlist-title');
+                 const linkInput = document.getElementById('wishlist-link');
+                 
+                 if(titleInput && bookTitle) titleInput.value = bookTitle;
+                 if(linkInput && bookLink) linkInput.value = bookLink;
+             }, 100);
             
             // Clean URL so refresh doesn't trigger again
             window.history.replaceState({}, document.title, window.location.pathname);
