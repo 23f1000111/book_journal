@@ -1664,3 +1664,71 @@ input:focus, select:focus, textarea:focus {
         padding-bottom: max(1rem, env(safe-area-inset-bottom));
     }
 }
+
+/* Journal Controls (Search & Sort) */
+.journal-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-wrapper {
+    flex: 1;
+    position: relative;
+    min-width: 200px;
+}
+
+.search-wrapper i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem; /* space for icon */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(230, 126, 34, 0.1);
+}
+
+.sort-select {
+    padding: 0.8rem 2.5rem 0.8rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: white;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    cursor: pointer;
+    min-width: 180px;
+    appearance: none; /* Custom arrow */
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232c3e50%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 0.8rem;
+}
+
+.sort-select:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+@media (max-width: 600px) {
+    .journal-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

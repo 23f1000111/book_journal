@@ -96,6 +96,21 @@
                     </div>
                 </header>
 
+                <div class="journal-controls">
+                    <div class="search-wrapper">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Search by title, author, or genre..." class="search-input">
+                    </div>
+                    <select id="sort-select" class="sort-select">
+                        <option value="date-desc">Date: Newest First</option>
+                        <option value="date-asc">Date: Oldest First</option>
+                        <option value="rating-desc">Rating: High to Low</option>
+                        <option value="rating-asc">Rating: Low to High</option>
+                        <option value="title-asc">Title: A-Z</option>
+                        <option value="title-desc">Title: Z-A</option>
+                    </select>
+                </div>
+
                 <div class="reviews-container" id="reviews-list">
                     <!-- Review Cards will be injected here -->
                     <div class="empty-state">

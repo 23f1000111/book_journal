@@ -62,6 +62,10 @@ let currentYearFilter = new Date().getFullYear();
 let friends = [];
 let deferredPrompt; // For PWA install
 
+// Search & Sort State
+let currentSearchTerm = '';
+let currentSortOrder = 'date-desc';
+
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -81,7 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchWishlist();
             await fetchUserGoal();
             await fetchFriends();
+            await fetchFriends();
             setupEventListeners();
+            setupSearchListeners();
             
             // Initial Analytics Update
             if (window.updateAnalytics) window.updateAnalytics();
@@ -294,7 +300,7 @@ async function fetchReviews() {
         querySnapshot.forEach((doc) => {
             reviews.push({ id: doc.id, ...doc.data() });
         });
-        renderReviews();
+        filterAndSortReviews();
         updateGoalProgress(currentYearFilter);
     } catch (e) {
         console.error("Error fetching reviews:", e);
@@ -307,7 +313,7 @@ async function fetchReviews() {
                 reviews.push({ id: doc.id, ...doc.data() });
              });
              reviews.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-             renderReviews();
+             filterAndSortReviews();
              updateGoalProgress(currentYearFilter);
          }
     }
@@ -499,11 +505,25 @@ async function deleteWishlistItem(id) {
 
 // --- Rendering Functions ---
 
-function renderReviews() {
+function renderReviews(listToRender = reviews) {
     if (!reviewsGrid) return;
     reviewsGrid.innerHTML = '';
     
-    if (reviews.length === 0) {
+    // Empty State Handling
+    if (listToRender.length === 0) {
+        if (reviews.length === 0) {
+            // Totally empty (no reviews at all)
+            reviewsGrid.innerHTML = `
+                <div class="empty-state">
+                    <p>No reviews yet. Start your journal!</p>
+                </div>`;
+        } else {
+            // Search result empty
+            reviewsGrid.innerHTML = `
+                <div class="empty-state">
+                    <p>No reviews match your search.</p>
+                </div>`;
+        }
         reviewsGrid.innerHTML = `
             <div class="empty-state">
                 <p>No reviews yet. Start your journal!</p>
@@ -512,7 +532,7 @@ function renderReviews() {
         return;
     }
 
-    reviews.forEach(review => {
+    listToRender.forEach(review => {
         const card = document.createElement('div');
         card.className = 'review-card';
         // Basic Card Template
@@ -596,6 +616,65 @@ function renderReviews() {
     });
 
     if(window.updateAnalytics) window.updateAnalytics();
+}
+
+function setupSearchListeners() {
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value.toLowerCase().trim();
+            filterAndSortReviews();
+        });
+    }
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            currentSortOrder = e.target.value;
+            filterAndSortReviews();
+        });
+    }
+}
+
+function filterAndSortReviews() {
+    // 1. Filter
+    let filtered = reviews.filter(r => {
+        if (!currentSearchTerm) return true;
+        const term = currentSearchTerm;
+        const inTitle = r.title && r.title.toLowerCase().includes(term);
+        const inAuthor = r.author && r.author.toLowerCase().includes(term);
+        const inGenre = r.genre && r.genre.toLowerCase().includes(term);
+        return inTitle || inAuthor || inGenre;
+    });
+
+    // 2. Sort
+    filtered.sort((a, b) => {
+        switch (currentSortOrder) {
+            case 'date-desc':
+                // Newest First
+                return (new Date(b.endDate || 0)) - (new Date(a.endDate || 0));
+            case 'date-asc':
+                // Oldest First
+                return (new Date(a.endDate || 0)) - (new Date(b.endDate || 0));
+            case 'rating-desc':
+                // High to Low
+                return (b.rating || 0) - (a.rating || 0);
+            case 'rating-asc':
+                // Low to High
+                return (a.rating || 0) - (b.rating || 0);
+            case 'title-asc':
+                // A-Z
+                return (a.title || '').localeCompare(b.title || '');
+            case 'title-desc':
+                // Z-A
+                return (b.title || '').localeCompare(a.title || '');
+            default:
+                return 0;
+        }
+    });
+
+    renderReviews(filtered);
 }
 
 function renderWishlist() {
@@ -950,33 +1029,89 @@ function printReview(review) {
     const starHtml = '★'.repeat(Math.round(review.rating)) + '☆'.repeat(5 - Math.round(review.rating));
     
     const htmlContent = `
-        <html>
+        <!DOCTYPE html>
+        <html lang="en">
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Review: ${review.title}</title>
             <style>
-                body { font-family: 'Georgia', serif; padding: 40px; }
-                h1 { font-family: 'Arial', sans-serif; margin-bottom: 5px; }
-                .meta { color: #666; font-style: italic; margin-bottom: 20px; }
-                .cover { max-width: 200px; float: left; margin-right: 20px; margin-bottom: 20px; border: 1px solid #ccc; }
-                .content { line-height: 1.6; }
-                .quote { border-left: 3px solid #ccc; padding-left: 15px; margin: 20px 0; font-style: italic; font-size: 1.1em; }
-                .rating { color: gold; font-size: 1.2em; }
+                body { 
+                    font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+                    padding: 40px; 
+                    max-width: 800px;
+                    margin: 0 auto;
+                    color: #333;
+                }
+                h1 { 
+                    font-family: 'Georgia', serif; 
+                    margin-bottom: 5px; 
+                    font-size: 2em;
+                    color: #2c3e50;
+                }
+                .meta { 
+                    color: #7f8c8d; 
+                    font-style: italic; 
+                    margin-bottom: 20px; 
+                    font-size: 1.1em;
+                }
+                .cover { 
+                    max-width: 200px; 
+                    float: left; 
+                    margin-right: 25px; 
+                    margin-bottom: 20px; 
+                    border-radius: 4px;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+                }
+                .content { 
+                    line-height: 1.8; 
+                    font-size: 1.1em;
+                    overflow-wrap: break-word; /* Prevents overflow */
+                    word-wrap: break-word;
+                }
+                .quote { 
+                    background: #f9f9f9;
+                    border-left: 5px solid #e67e22; 
+                    padding: 15px 20px; 
+                    margin: 25px 0; 
+                    font-style: italic; 
+                    font-size: 1.2em;
+                    color: #555;
+                    border-radius: 0 8px 8px 0;
+                    overflow-wrap: break-word;
+                }
+                .rating { 
+                    color: #f1c40f; 
+                    font-size: 1.5em; 
+                    margin-bottom: 10px;
+                    letter-spacing: 2px;
+                }
+                .clearfix::after {
+                    content: "";
+                    clear: both;
+                    display: table;
+                }
+                @media print {
+                    body { padding: 0; }
+                    .cover { max-width: 150px; }
+                }
             </style>
         </head>
         <body>
-            ${review.cover ? `<img src="${review.cover}" class="cover">` : ''}
-            <h1>${review.title}</h1>
-            <p class="meta">by ${review.author} | read: ${review.endDate}</p>
-            <div class="rating">${starHtml}</div>
-            
-            ${review.quote ? `<div class="quote">"${review.quote}"</div>` : ''}
-            
-            <div class="content">
-                ${review.review.replace(/\n/g, '<br>')}
+            <div class="clearfix">
+                ${review.cover ? `<img src="${review.cover}" class="cover">` : ''}
+                <h1>${review.title}</h1>
+                <div class="rating">${starHtml}</div>
+                <p class="meta">by ${review.author} • Read: ${formatDate(review.endDate)}</p>
+                
+                ${review.quote ? `<div class="quote">"${review.quote}"</div>` : ''}
+                
+                <div class="content">
+                    ${review.review.replace(/\n/g, '<br>')}
+                </div>
             </div>
             
             <script>
-                // Wait for images to load before printing
                 window.onload = function() { 
                     setTimeout(() => {
                         window.print();
@@ -1017,7 +1152,7 @@ function exportReviews() {
     });
     
     const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv' });
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('hidden', '');
@@ -1034,244 +1169,191 @@ function exportReviewsToPDF() {
         return;
     }
     
-    if(loadingOverlay) loadingOverlay.classList.remove('hidden');
+    // Instead of using jsPDF which has issues with non-Latin scripts (like Hindi),
+    // we generate a clean HTML print view that the user can "Save to PDF".
+    // This uses the browser's native text rendering engine.
+    
+    const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+        alert("Popups blocked. Please allow popups to export.");
+        return;
+    }
 
-    setTimeout(() => {
-        try {
-            // Robust check for jsPDF
-            const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-            
-            if (!jsPDF) {
-                console.error("jsPDF not found in window.jspdf or window.jsPDF");
-                alert("PDF Library error. Please reload.");
-                if(loadingOverlay) loadingOverlay.classList.add('hidden');
-                return;
-            }
-            
-            const doc = new jsPDF();
-            
-            // Header
-            doc.setFontSize(22);
-            doc.setTextColor(44, 62, 80);
-            const title = "My Reading Journal";
-            doc.text(title, 14, 22);
-            
-            doc.setFontSize(11);
-            doc.setTextColor(100);
-            const dateStr = `Exported on ${new Date().toLocaleDateString()}`;
-            doc.text(dateStr, 14, 30);
+    const dateStr = new Date().toLocaleDateString();
+    
+    // Build HTML for all reviews
+    let cardsHtml = '';
+    
+    reviews.forEach(review => {
+        const starHtml = '★'.repeat(Math.round(review.rating)) + '☆'.repeat(5 - Math.round(review.rating));
+        
+        cardsHtml += `
+            <div class="review-card">
+                <div class="card-content clearfix">
+                    ${review.cover ? `<div class="card-image"><img src="${review.cover}"></div>` : ''}
+                    <div class="card-details">
+                        <h2>${review.title}</h2>
+                        <p class="author">by ${review.author}</p>
+                        <div class="rating">${starHtml}</div>
+                        <p class="dates">${formatDate(review.startDate)} - ${formatDate(review.endDate)}</p>
+                        ${review.genre ? `<span class="genre">${review.genre}</span>` : ''}
+                        
+                        ${review.quote ? `<div class="quote">"${review.quote}"</div>` : ''}
+                        <div class="review-text">${review.review ? review.review.replace(/\n/g, '<br>') : ''}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
 
-            // Helper to draw a star
-            const drawStar = (cx, cy, spikes, outerRadius, innerRadius) => {
-                let rot = Math.PI / 2 * 3;
-                let x = cx;
-                let y = cy;
-                let step = Math.PI / spikes;
-            
-                doc.setLineWidth(0.1);
-                doc.setDrawColor(255, 200, 0); // Gold Outline
-                doc.setFillColor(255, 200, 0); // Gold Fill
-
-                // Check if we are drawing lines
-                const path = [];
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>My Reading Journal</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    background: #fff;
+                    color: #333;
+                    padding: 40px;
+                    max-width: 900px;
+                    margin: 0 auto;
+                }
+                header {
+                    border-bottom: 2px solid #2c3e50;
+                    padding-bottom: 20px;
+                    margin-bottom: 40px;
+                    text-align: center;
+                }
+                header h1 {
+                    font-family: 'Georgia', serif;
+                    font-size: 2.5em;
+                    color: #2c3e50;
+                    margin: 0;
+                }
+                header p {
+                    color: #7f8c8d;
+                    margin-top: 5px;
+                }
                 
-                path.push({op: 'm', c: [cx, cy - outerRadius]});
-                
-                for (let i = 0; i < spikes; i++) {
-                    x = cx + Math.cos(rot) * outerRadius;
-                    y = cy + Math.sin(rot) * outerRadius;
-                    // doc.lineTo(x, y) - using low level lines for speed if needed, but lets use triangle or lines
+                .review-card {
+                    margin-bottom: 40px;
+                    border: 1px solid #eee;
+                    border-radius: 8px;
+                    padding: 25px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                    page-break-inside: avoid; /* Keep card together */
+                    background: #fff;
                 }
-                // Simpler approach: Draw small polygon
-                 const angle = Math.PI / 5;
-                 const points = [];
-                 for (let i = 0; i < 10; i++) {
-                     const r = (i % 2 === 0) ? outerRadius : innerRadius;
-                     const a = i * angle - Math.PI / 2; // start at top
-                     points.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
-                 }
-                 
-                 // Construct path manually
-                 let buf = "";
-                 points.forEach((p, i) => {
-                    buf += `${(p[0] * (72/25.4)).toFixed(2)} ${(doc.internal.pageSize.getHeight() - p[1]) * (72/25.4).toFixed(2)} ${i===0 ? 'm' : 'l'} `;
-                 });
-                 // This low-level path construction is risky in high-level lib. 
-                 // Fallback: Use standard lines
-                 doc.lines(
-                    points.map((p, i) => {
-                        if(i===0) return null;
-                        return [p[0] - points[i-1][0], p[1] - points[i-1][1]];
-                    }).slice(1).concat([[points[0][0] - points[9][0], points[0][1] - points[9][1]]]), 
-                    points[0][0], 
-                    points[0][1], 
-                    [1, 1], 
-                    'F'
-                 );
-            };
+                
+                .clearfix::after {
+                    content: "";
+                    clear: both;
+                    display: table;
+                }
 
-            // Single-column Layout for full content
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 14;
-            const cardWidth = pageWidth - (margin * 2);
-            const imageWidth = 40;
-            const imageHeight = 55;
-            const contentWidth = cardWidth - imageWidth - 20;
+                .card-image {
+                    float: left;
+                    width: 120px;
+                    margin-right: 25px;
+                }
+                .card-image img {
+                    width: 100%;
+                    border-radius: 4px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+                
+                .card-details {
+                    overflow: hidden; /* Triggers BFC to wrap around float */
+                }
+                
+                h2 {
+                    margin-top: 0;
+                    margin-bottom: 5px;
+                    color: #2c3e50;
+                    font-size: 1.6em;
+                }
+                
+                .author {
+                    color: #7f8c8d;
+                    font-style: italic;
+                    margin-top: 0;
+                    margin-bottom: 10px;
+                }
+                
+                .rating {
+                    color: #f1c40f;
+                    font-size: 1.2em;
+                    letter-spacing: 2px;
+                    margin-bottom: 10px;
+                }
+                
+                .dates {
+                    font-size: 0.9em;
+                    color: #95a5a6;
+                }
+                
+                .genre {
+                    display: inline-block;
+                    background: #f0f0f0;
+                    padding: 2px 8px;
+                    border-radius: 12px;
+                    font-size: 0.8em;
+                    color: #555;
+                    margin-bottom: 15px;
+                }
+                
+                .quote {
+                    background: #fff8f0;
+                    border-left: 4px solid #e67e22;
+                    padding: 10px 15px;
+                    margin: 15px 0;
+                    font-style: italic;
+                    color: #555;
+                    overflow-wrap: break-word; /* Handle long words */
+                }
+                
+                .review-text {
+                    line-height: 1.6;
+                    color: #444;
+                    overflow-wrap: break-word; /* Handle long words */
+                    word-wrap: break-word;
+                }
+
+                @media print {
+                    body { padding: 0; margin: 0; }
+                    .review-card { box-shadow: none; border: 1px solid #ddd; }
+                    /* Ensure background colors print */
+                    .quote, .genre { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body>
+            <header>
+                <h1>My Reading Journal</h1>
+                <p>Exported on ${dateStr}</p>
+            </header>
             
-            let y = 40;
-
-            reviews.forEach((review, index) => {
-                // Calculate dynamic card height based on content
-                doc.setFontSize(8);
-                const quoteLines = review.quote ? doc.splitTextToSize(`"${review.quote}"`, contentWidth) : [];
-                const reviewLines = review.review ? doc.splitTextToSize(review.review, contentWidth) : [];
-                
-                // Base height + quote lines + review lines
-                const baseHeight = 60; // Title, author, stars, date
-                const quoteHeight = quoteLines.length * 3.5;
-                const reviewHeight = reviewLines.length * 3.5;
-                const cardHeight = Math.max(imageHeight + 10, baseHeight + quoteHeight + reviewHeight);
-                
-                // Check Page Break
-                if (y + cardHeight > pageHeight - margin) {
-                    doc.addPage();
-                    y = 20;
+            ${cardsHtml}
+            
+            <script>
+                window.onload = function() { 
+                    setTimeout(() => {
+                        window.print();
+                    }, 1000); // Give images a sec
                 }
+            </script>
+        </body>
+        </html>
+    `;
 
-                const x = margin;
-
-                // Shadow
-                doc.setFillColor(230, 230, 230);
-                doc.roundedRect(x + 1.5, y + 1.5, cardWidth, cardHeight, 3, 3, 'F');
-
-                // Card Base
-                doc.setFillColor(255, 255, 255);
-                doc.setDrawColor(220, 220, 220);
-                doc.setLineWidth(0.2);
-                doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'FD');
-
-                // Draw Image (Left)
-                const img = review.cover;
-                if (img && img.startsWith('data:image')) {
-                    try {
-                        doc.addImage(img, 'JPEG', x + 5, y + 5, imageWidth, imageHeight);
-                    } catch (e) { }
-                }
-
-                // Content Area (Right)
-                const contentX = x + imageWidth + 14;
-                let textY = y + 12;
-
-                // Title
-                doc.setFont("times", "bold");
-                doc.setFontSize(16);
-                doc.setTextColor(44, 62, 80);
-                doc.text(review.title, contentX, textY);
-                textY += 7;
-
-                // Author
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(12);
-                doc.setTextColor(100);
-                doc.text(`by ${review.author}`, contentX, textY);
-                textY += 9;
-
-                // Stars
-                const rating = review.rating;
-                const starSize = 2;
-                const starSpacing = 5;
-                const starDeltas = [
-                    [0.224, 0.691], [0.727, 0], [-0.588, 0.427],
-                    [0.224, 0.691], [-0.588, -0.427], [-0.588, 0.427],
-                    [0.224, -0.691], [-0.588, -0.427], [0.727, 0], [0.224, -0.691]
-                ];
-                
-                for(let i = 0; i < 5; i++) {
-                    const starCX = contentX + (i * starSpacing);
-                    const starCY = textY;
-                    const startX = starCX;
-                    const startY = starCY - starSize;
-                    const fillAmount = Math.max(0, Math.min(1, rating - i));
-                    const scaledDeltas = starDeltas.map(d => [d[0] * starSize, d[1] * starSize]);
-                    
-                    doc.setLineWidth(0.3);
-                    
-                    if (fillAmount >= 1) {
-                        doc.setFillColor(50, 50, 50);
-                        doc.setDrawColor(50, 50, 50);
-                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
-                    } else if (fillAmount >= 0.5) {
-                        doc.setFillColor(50, 50, 50);
-                        doc.setDrawColor(50, 50, 50);
-                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
-                        doc.setFillColor(255, 255, 255);
-                        doc.rect(starCX, starCY - starSize - 0.5, starSize * 1.2, starSize * 2.5, 'F');
-                        doc.setDrawColor(50, 50, 50);
-                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'S', true);
-                    } else {
-                        doc.setDrawColor(50, 50, 50);
-                        doc.setFillColor(255, 255, 255);
-                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
-                    }
-                }
-                textY += 6;
-
-                // Date
-                doc.setTextColor(120);
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                const dateText = `${formatDate(review.startDate)} - ${formatDate(review.endDate)}`;
-                doc.text(dateText, contentX, textY);
-                textY += 7;
-
-                // Quote (FULL - no line limit)
-                if (review.quote) {
-                    doc.setTextColor(80);
-                    doc.setFontSize(10);
-                    doc.setFont("times", "italic");
-                    quoteLines.forEach((line, lineIndex) => {
-                        doc.text(line, contentX, textY + (lineIndex * 4));
-                    });
-                    textY += (quoteLines.length * 4) + 3;
-                }
-
-                // Review text (FULL - no line limit)
-                if (review.review) {
-                    doc.setTextColor(60);
-                    doc.setFontSize(10);
-                    doc.setFont("helvetica", "normal");
-                    reviewLines.forEach((line, lineIndex) => {
-                        doc.text(line, contentX, textY + (lineIndex * 4));
-                    });
-                }
-
-                // Genre Badge
-                if (review.genre) {
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(8);
-                    const genreWidth = doc.getTextWidth(review.genre) + 6;
-                    const badgeX = x + cardWidth - genreWidth - 4;
-                    const badgeY = y + 4;
-                    
-                    doc.setFillColor(240, 240, 240);
-                    doc.roundedRect(badgeX, badgeY, genreWidth, 6, 3, 3, 'F');
-                    doc.setTextColor(80);
-                    doc.text(review.genre, badgeX + 3, badgeY + 4);
-                }
-
-                // Move to next card
-                y += cardHeight + 10;
-            });
-
-            doc.save(`reading_journal_${new Date().toISOString().slice(0,10)}.pdf`);
-        } catch (e) {
-            console.error("PDF Export Error", e);
-            alert("Failed to generate PDF. check console.");
-        } finally {
-            if(loadingOverlay) loadingOverlay.classList.add('hidden');
-        }
-    }, 100);
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
 }
 
 function shareReview(review) {
@@ -1327,120 +1409,10 @@ function shareReview(review) {
             alert("Your wishlist is empty!");
             return;
         }
-        
-        if(loadingOverlay) loadingOverlay.classList.remove('hidden');
-
-        setTimeout(() => {
-            try {
-                // Robust check
-                const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
-                
-                if (!jsPDF) {
-                     console.error("jsPDF not found in window");
-                    alert("PDF Library error. Please reload.");
-                    if(loadingOverlay) loadingOverlay.classList.add('hidden');
-                    return;
-                }
-                const doc = new jsPDF();
-                
-                // Header
-                doc.setFontSize(22);
-                doc.setTextColor(44, 62, 80);
-                doc.text("My Want To Read List", 14, 22);
-                
-                doc.setFontSize(11);
-                doc.setTextColor(100);
-                doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
-
-                // Table
-                // Grid Layout Settings
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const margin = 14;
-                const gap = 8;
-                const cardWidth = (pageWidth - (margin * 2) - gap) / 2;
-                const cardHeight = 40; // Smaller for wishlist
-                const imageWidth = 26;
-                const imageHeight = 34; // Smaller cover
-                
-                let x = margin;
-                let y = 40; 
-                let col = 0;
-
-                wishlist.forEach((book, index) => {
-                     // Check Page Break
-                    if (y + cardHeight > doc.internal.pageSize.getHeight() - margin) {
-                        doc.addPage();
-                        y = 20; 
-                    }
-
-                    // Calc X
-                    x = margin + (col * (cardWidth + gap));
-
-                    // Draw Card
-                    doc.setDrawColor(220, 220, 220);
-                    doc.setLineWidth(0.5);
-                    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'S');
-
-                    // Draw Image
-                    const img = book.cover;
-                    if (img && img.startsWith('data:image')) {
-                        try {
-                            const imgY = y + (cardHeight - imageHeight) / 2;
-                            doc.addImage(img, 'JPEG', x + 4, imgY, imageWidth, imageHeight);
-                        } catch (e) { }
-                    }
-
-                    // Content
-                    const contentX = x + imageWidth + 8;
-                    let textY = y + 12;
-
-                    // Title (wrap to multiple lines if needed)
-                    doc.setFont("helvetica", "bold");
-                    doc.setFontSize(11);
-                    doc.setTextColor(44, 62, 80);
-                    const maxTitleWidth = cardWidth - imageWidth - 12;
-                    const titleLines = doc.splitTextToSize(book.title, maxTitleWidth);
-                    titleLines.slice(0, 2).forEach((line, lineIndex) => {
-                        doc.text(line, contentX, textY + (lineIndex * 5));
-                    });
-                    textY += (Math.min(titleLines.length, 2) * 5) + 1;
-
-                    // Author (wrap to multiple lines if needed)
-                    doc.setFont("helvetica", "italic");
-                    doc.setFontSize(9);
-                    doc.setTextColor(100);
-                    const maxAuthorWidth = cardWidth - imageWidth - 12; // Available width
-                    const authorLines = doc.splitTextToSize(book.author, maxAuthorWidth);
-                    authorLines.slice(0, 2).forEach((line, lineIndex) => {
-                        doc.text(line, contentX, textY + (lineIndex * 4));
-                    });
-                    textY += (Math.min(authorLines.length, 2) * 4) + 2;
-
-                    // Link
-                     if (book.link) {
-                        doc.setTextColor(52, 152, 219);
-                        doc.setFont("helvetica", "normal");
-                        doc.setFontSize(8);
-                        doc.textWithLink("View Book Link", contentX, textY, { url: book.link });
-                    }
-
-                    // Move Cursor
-                    col++;
-                    if (col > 1) {
-                        col = 0;
-                        y += cardHeight + gap;
-                    }
-                });
-
-                doc.save('my-wishlist.pdf');
-            } catch (e) {
-                console.error("Wishlist Export Error", e);
-                alert("Failed to export wishlist.");
-            } finally {
-                 if(loadingOverlay) loadingOverlay.classList.add('hidden');
-            }
-        }, 100);
+        // Redirect to printWishlist() effectively, since we want the same HTML print engine
+        printWishlist();
     }
+
     function printWishlist() {
          if(!wishlist || wishlist.length === 0) {
             alert("Your wishlist is empty!");
@@ -1465,19 +1437,56 @@ function shareReview(review) {
         `).join('');
 
         const htmlContent = `
-            <html>
+            <!DOCTYPE html>
+            <html lang="en">
             <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>My Want To Read List</title>
                 <style>
-                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; }
-                    h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 30px; }
-                    .book-item { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; page-break-inside: avoid; }
-                    .cover { width: 80px; height: 120px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
-                    .placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #777; font-size: 0.8rem; text-align: center; }
+                    body { 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                        padding: 40px; 
+                        max-width: 800px;
+                        margin: 0 auto;
+                        color: #333;
+                    }
+                    h1 { 
+                        border-bottom: 2px solid #2c3e50; 
+                        padding-bottom: 10px; 
+                        margin-bottom: 30px; 
+                        color: #2c3e50;
+                    }
+                    .book-item { 
+                        display: flex; 
+                        gap: 20px; 
+                        margin-bottom: 20px; 
+                        border-bottom: 1px solid #eee; 
+                        padding-bottom: 20px; 
+                        page-break-inside: avoid; 
+                    }
+                    .cover { 
+                        width: 80px; 
+                        height: 120px; 
+                        object-fit: cover; 
+                        border: 1px solid #ddd; 
+                        flex-shrink: 0; 
+                        border-radius: 4px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    }
+                    .placeholder { 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center; 
+                        background: #eee; 
+                        color: #777; 
+                        font-size: 0.8rem; 
+                        text-align: center; 
+                    }
                     .details { flex: 1; }
-                    h3 { margin: 0 0 5px 0; color: #2c3e50; }
+                    h3 { margin: 0 0 5px 0; color: #2c3e50; font-size: 1.2em; }
                     .author { margin: 0 0 10px 0; color: #555; font-style: italic; }
-                    .link { margin: 0; font-size: 0.85rem; }
+                    .link { margin: 0; font-size: 0.85rem; word-break: break-all; }
                     .link a { color: #3498db; text-decoration: none; }
                 </style>
             </head>
@@ -1487,7 +1496,7 @@ function shareReview(review) {
                 <script>
                     window.onload = function() { 
                         setTimeout(() => {
-                             window.print(); 
+                            window.print(); 
                         }, 500);
                     }
                 </script>
