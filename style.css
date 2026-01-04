@@ -637,6 +637,25 @@ input:focus, select:focus, textarea:focus {
         height: 100%;
         max-height: 100%;
         border-radius: 0;
+        padding: 1rem; /* Reduce padding */
+    }
+
+    .form-row {
+        flex-direction: column; /* Stack inputs */
+        gap: 0.5rem;
+    }
+    
+    .photo-upload-group {
+        width: 100%;
+    }
+    
+    .upload-label {
+        width: 100px;
+        height: 150px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.2rem;
     }
 }
 /* Wishlist Styles */
@@ -1227,5 +1246,100 @@ input:focus, select:focus, textarea:focus {
     .btn-outlined-sm {
         width: 100%;
         text-align: center;
+    }
+}
+
+/* Print Styles */
+@media print {
+    /* Reset Page Constraints */
+    body, html {
+        height: auto !important;
+        overflow: visible !important;
+        min-height: 0 !important;
+    }
+
+    /* Hide UI Elements */
+    .sidebar, .mobile-menu-toggle, .actions, .btn-primary, .btn-secondary, 
+    .wishlist-actions, .nav-footer, .top-bar .controls, .header-actions {
+        display: none !important;
+    }
+
+    /* Reset Layout Containers */
+    .app-container {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+    
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+
+    /* Handle Views */
+    .view {
+        display: block !important; /* Override flex */
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .view.hidden {
+        display: none !important; /* Ensure hidden views STAY hidden */
+    }
+
+    /* Wishlist Grid Optimization */
+    .wishlist-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1.5rem !important;
+        padding-bottom: 0 !important;
+    }
+    
+    .wishlist-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* Journal Print Optimizations */
+    .reviews-container {
+        display: block !important; 
+        overflow: visible !important;
+    }
+    
+    .review-card {
+       break-inside: avoid;
+       page-break-inside: avoid;
+       border: 1px solid #ddd !important;
+       box-shadow: none !important;
+       margin-bottom: 1.5rem;
+       display: block !important; /* Simplify layout */
+    }
+    
+    .card-cover {
+        display: none !important; /* Hide images to save space/ink if needed, or keep? Let's keep for now but reset size if issues */
+    }
+    
+    .review-card .card-details {
+        display: block !important;
+    }
+
+    .card-footer-actions {
+        display: none !important;
+    }
+    
+    /* Analytics Print Fixes (Can be heavy to print charts) */
+    .dashboard-container {
+        display: block !important;
+    }
+    
+    .chart-card {
+        page-break-inside: avoid;
     }
 }

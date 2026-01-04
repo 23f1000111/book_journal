@@ -28,6 +28,7 @@ const wishlistCoverPreview = document.getElementById('wishlist-cover-preview');
 const wishlistModalTitle = document.getElementById('wishlist-modal-title');
 const wishlistIdInput = document.getElementById('wishlist-id');
 const shareWishlistBtn = document.getElementById('share-wishlist-btn');
+const printWishlistBtn = document.getElementById('print-wishlist-btn');
 const exportWishlistPdfBtn = document.getElementById('export-wishlist-pdf-btn');
 
 // Goals Elements
@@ -1132,12 +1133,63 @@ function shareReview(review) {
 
         html2pdf().set(opt).from(element).save();
     }
+    function printWishlist() {
+         if(!wishlist || wishlist.length === 0) {
+            alert("Your wishlist is empty!");
+            return;
+        }
+
+        const printWindow = window.open('', '_blank');
+        
+        const listHtml = wishlist.map(book => `
+            <div class="book-item">
+                ${book.cover ? `<img src="${book.cover}" class="cover">` : '<div class="cover placeholder">No Cover</div>'}
+                <div class="details">
+                    <h3>${book.title}</h3>
+                    <p class="author">by ${book.author}</p>
+                    ${book.link ? `<p class="link"><a href="${book.link}">${book.link}</a></p>` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>My Want To Read List</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; }
+                    h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 30px; }
+                    .book-item { display: flex; gap: 20px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 20px; page-break-inside: avoid; }
+                    .cover { width: 80px; height: 120px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
+                    .placeholder { display: flex; align-items: center; justify-content: center; background: #eee; color: #777; font-size: 0.8rem; text-align: center; }
+                    .details { flex: 1; }
+                    h3 { margin: 0 0 5px 0; color: #2c3e50; }
+                    .author { margin: 0 0 10px 0; color: #555; font-style: italic; }
+                    .link { margin: 0; font-size: 0.85rem; }
+                    .link a { color: #3498db; text-decoration: none; }
+                </style>
+            </head>
+            <body>
+                <h1>My Want To Read List</h1>
+                ${listHtml}
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
     // END: Wishlist Share & Export
 
 function setupEventListeners() {
     // Wishlist Share/PDF Listeners
     if(shareWishlistBtn) {
         shareWishlistBtn.addEventListener('click', shareWishlist);
+    }
+    if(printWishlistBtn) {
+        printWishlistBtn.addEventListener('click', printWishlist);
     }
     if(exportWishlistPdfBtn) {
         exportWishlistPdfBtn.addEventListener('click', exportWishlistPdf);
