@@ -264,44 +264,82 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('export-analytics-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => {
-            const element = document.querySelector('#analytics-view');
-            const controls = element.querySelector('.controls');
-            if (controls) controls.style.display = 'none'; // hide controls from pdf
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
-            // Temporary styling for better PDF output
-            const originalWidth = element.style.width;
-            const originalPadding = element.style.padding;
-            const originalMargin = element.style.margin;
-            
-            element.style.width = '1100px'; // Force fixed width to fit landscape A4 nicely
-            element.style.padding = '20px';
-            element.style.margin = '0 auto';
+            setTimeout(() => {
+                try {
+                    // Robust check
+                    const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+                    
+                    if (!jsPDF) {
+                        console.error("jsPDF not found");
+                        alert("PDF Library error. Please reload.");
+                        if(loadingOverlay) loadingOverlay.classList.add('hidden');
+                        return;
+                    }
+                    
+                    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
-            const opt = {
-                margin: 10,
-                filename: 'Reading_Analytics.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
+                    // Title
+                    doc.setFontSize(22);
+                    doc.setTextColor(44, 62, 80);
+                    doc.text("Reading Analytics Report", 15, 20);
 
-            html2pdf().set(opt).from(element).save()
-            .then(() => {
-                // Success
-            })
-            .catch(err => {
-                console.error("Export failed:", err);
-                alert("Failed to generate report. Please try again.");
-            })
-            .finally(() => {
-                if (controls) controls.style.display = 'flex';
-                // Restore styles
-                element.style.width = originalWidth;
-                element.style.padding = originalPadding;
-                element.style.margin = originalMargin;
-                element.style.height = ''; 
-            });
+                    // Stats Text
+                    doc.setFontSize(12);
+                    doc.setTextColor(100);
+                    
+                    const totalBooks = document.getElementById('stat-total-books')?.textContent || "0";
+                    const avgRating = document.getElementById('stat-avg-rating')?.textContent || "0";
+                    const days = document.getElementById('stat-reading-days')?.textContent || "0";
+                    
+                    let y = 35;
+                    doc.text(`Total Books: ${totalBooks}`, 15, y);
+                    doc.text(`Avg Rating: ${avgRating}`, 60, y);
+                    doc.text(`Reading Days: ${days}`, 110, y);
+                    
+                    // Capture Charts
+                    const chartIds = ['chart-books-month', 'chart-rating-dist', 'chart-genre-dist', 'chart-trend'];
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    
+                    let x = 15;
+                    y = 50; 
+                    const w = (pageWidth - 40) / 2; // 2 per row
+                    const h = 70;
+
+                    chartIds.forEach((id, index) => {
+                        const canvas = document.getElementById(id);
+                        if(canvas) {
+                            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                            
+                            // 2x2 Grid Logic
+                            if (index === 2) { // New Row
+                                x = 15;
+                                y += h + 10;
+                            } else if (index === 1 || index === 3) {
+                                x += w + 10;
+                            }
+                            
+                            // Add Title above chart
+                            doc.setFontSize(10);
+                            doc.setTextColor(50);
+                            let title = id.replace('chart-', '').replace('-', ' ').toUpperCase();
+                            doc.text(title, x, y - 2);
+
+                            doc.addImage(imgData, 'JPEG', x, y, w, h);
+                        }
+                    });
+
+                    doc.save('reading_analytics_report.pdf');
+                } catch (e) {
+                    console.error("PDF Export Error", e);
+                    alert("Failed to export analytics.");
+                } finally {
+                    if (loadingOverlay) loadingOverlay.classList.add('hidden');
+                }
+            }, 100);
         });
     }
 

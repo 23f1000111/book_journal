@@ -28,7 +28,7 @@ body {
     background-color: var(--bg-main);
     color: var(--text-main);
     min-height: 100vh;
-    /* overflow: hidden; Removed for full page scroll */
+
 }
 
 /* Layout */
@@ -102,14 +102,14 @@ body {
 .main-content {
     flex: 1;
     padding: 2rem;
-    /* overflow-y: auto; Removed for full page scroll */
+
     position: relative;
     display: flex;
     flex-direction: column;
 }
 
 .view {
-    /* height: 100%; Removed */
+
     display: flex;
     flex-direction: column;
 }
@@ -1342,4 +1342,45 @@ input:focus, select:focus, textarea:focus {
     .chart-card {
         page-break-inside: avoid;
     }
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.9);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-overlay p {
+    font-family: var(--font-heading);
+    color: var(--text-main);
+    font-size: 1.2rem;
+    font-weight: 500;
 }

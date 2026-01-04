@@ -17,6 +17,7 @@ const coverInput = document.getElementById('book-cover-input');
 const coverPreview = document.getElementById('book-cover-preview'); 
 const reviewIdInput = document.getElementById('review-id');
 const modalTitle = document.getElementById('modal-title');
+const loadingOverlay = document.getElementById('loading-overlay');
 
 // Wishlist DOM Elements
 const wishlistGrid = document.getElementById('wishlist-grid');
@@ -115,11 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deferredPrompt.prompt();
                 // Wait for the user to respond to the prompt
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the A2HS prompt');
-                    } else {
-                        console.log('User dismissed the A2HS prompt');
-                    }
+
                     deferredPrompt = null;
                 });
             }
@@ -137,7 +134,7 @@ async function handleIncomingShare() {
     const sharedUrl = urlParams.get('url');
 
     if (sharedTitle || sharedText || sharedUrl) {
-        console.log("Received Share Data:", { sharedTitle, sharedText, sharedUrl });
+
 
         // 1. Switch to Wishlist View
         // Wait for UI
@@ -526,7 +523,7 @@ function renderReviews() {
             else starHtml += '<i class="fa-regular fa-star"></i>';
         }
 
-        const coverSrc = review.cover || 'https://via.placeholder.com/150x220?text=No+Cover';
+        const coverSrc = review.cover || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22150%22%20height%3D%22220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%22150%22%20height%3D%22220%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23aaa%22%20font-family%3D%22sans-serif%22%20font-size%3D%2220%22%3ENo%20Cover%3C%2Ftext%3E%3C%2Fsvg%3E';
         
         card.innerHTML = `
             <div class="card-cover">
@@ -613,7 +610,7 @@ function renderWishlist() {
     wishlist.forEach(item => {
         const card = document.createElement('div');
         card.className = 'wishlist-card';
-        const coverSrc = item.cover || 'https://via.placeholder.com/150x220?text=Book';
+        const coverSrc = item.cover || 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2280%22%20height%3D%22120%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%2280%22%20height%3D%22120%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23aaa%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%3ENo%20Cover%3C%2Ftext%3E%3C%2Fsvg%3E';
         
         card.innerHTML = `
             <img src="${coverSrc}" alt="${item.title}" class="wishlist-cover">
@@ -944,9 +941,15 @@ function resetWishlistPreview() {
 
 function printReview(review) {
     const printWindow = window.open('', '_blank');
+    
+    if (!printWindow) {
+        alert("Print popup was blocked. Please allow popups for this site.");
+        return;
+    }
+
     const starHtml = '★'.repeat(Math.round(review.rating)) + '☆'.repeat(5 - Math.round(review.rating));
     
-    printWindow.document.write(`
+    const htmlContent = `
         <html>
         <head>
             <title>Review: ${review.title}</title>
@@ -973,12 +976,20 @@ function printReview(review) {
             </div>
             
             <script>
-                window.onload = function() { window.print(); }
+                // Wait for images to load before printing
+                window.onload = function() { 
+                    setTimeout(() => {
+                        window.print();
+                    }, 500); 
+                }
             </script>
         </body>
         </html>
-    `);
+    `;
+
+    printWindow.document.write(htmlContent);
     printWindow.document.close();
+    printWindow.focus();
 }
 
 function exportReviews() {
@@ -1023,30 +1034,244 @@ function exportReviewsToPDF() {
         return;
     }
     
-    const element = document.getElementById('reviews-list');
-    
-    // Options for PDF
-    const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `reading_journal_${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    
-    // Add temporary class for styling during export
-    element.classList.add('pdf-export-mode');
-    
-    html2pdf().set(opt).from(element).save()
-        .then(() => {
-            element.classList.remove('pdf-export-mode');
-        })
-        .catch(err => {
-            console.error(err);
-            element.classList.remove('pdf-export-mode');
-            alert("PDF generation failed. Check console.");
-        });
+    if(loadingOverlay) loadingOverlay.classList.remove('hidden');
+
+    setTimeout(() => {
+        try {
+            // Robust check for jsPDF
+            const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+            
+            if (!jsPDF) {
+                console.error("jsPDF not found in window.jspdf or window.jsPDF");
+                alert("PDF Library error. Please reload.");
+                if(loadingOverlay) loadingOverlay.classList.add('hidden');
+                return;
+            }
+            
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(44, 62, 80);
+            const title = "My Reading Journal";
+            doc.text(title, 14, 22);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            const dateStr = `Exported on ${new Date().toLocaleDateString()}`;
+            doc.text(dateStr, 14, 30);
+
+            // Helper to draw a star
+            const drawStar = (cx, cy, spikes, outerRadius, innerRadius) => {
+                let rot = Math.PI / 2 * 3;
+                let x = cx;
+                let y = cy;
+                let step = Math.PI / spikes;
+            
+                doc.setLineWidth(0.1);
+                doc.setDrawColor(255, 200, 0); // Gold Outline
+                doc.setFillColor(255, 200, 0); // Gold Fill
+
+                // Check if we are drawing lines
+                const path = [];
+                
+                path.push({op: 'm', c: [cx, cy - outerRadius]});
+                
+                for (let i = 0; i < spikes; i++) {
+                    x = cx + Math.cos(rot) * outerRadius;
+                    y = cy + Math.sin(rot) * outerRadius;
+                    // doc.lineTo(x, y) - using low level lines for speed if needed, but lets use triangle or lines
+                }
+                // Simpler approach: Draw small polygon
+                 const angle = Math.PI / 5;
+                 const points = [];
+                 for (let i = 0; i < 10; i++) {
+                     const r = (i % 2 === 0) ? outerRadius : innerRadius;
+                     const a = i * angle - Math.PI / 2; // start at top
+                     points.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+                 }
+                 
+                 // Construct path manually
+                 let buf = "";
+                 points.forEach((p, i) => {
+                    buf += `${(p[0] * (72/25.4)).toFixed(2)} ${(doc.internal.pageSize.getHeight() - p[1]) * (72/25.4).toFixed(2)} ${i===0 ? 'm' : 'l'} `;
+                 });
+                 // This low-level path construction is risky in high-level lib. 
+                 // Fallback: Use standard lines
+                 doc.lines(
+                    points.map((p, i) => {
+                        if(i===0) return null;
+                        return [p[0] - points[i-1][0], p[1] - points[i-1][1]];
+                    }).slice(1).concat([[points[0][0] - points[9][0], points[0][1] - points[9][1]]]), 
+                    points[0][0], 
+                    points[0][1], 
+                    [1, 1], 
+                    'F'
+                 );
+            };
+
+            // Single-column Layout for full content
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 14;
+            const cardWidth = pageWidth - (margin * 2);
+            const imageWidth = 40;
+            const imageHeight = 55;
+            const contentWidth = cardWidth - imageWidth - 20;
+            
+            let y = 40;
+
+            reviews.forEach((review, index) => {
+                // Calculate dynamic card height based on content
+                doc.setFontSize(8);
+                const quoteLines = review.quote ? doc.splitTextToSize(`"${review.quote}"`, contentWidth) : [];
+                const reviewLines = review.review ? doc.splitTextToSize(review.review, contentWidth) : [];
+                
+                // Base height + quote lines + review lines
+                const baseHeight = 60; // Title, author, stars, date
+                const quoteHeight = quoteLines.length * 3.5;
+                const reviewHeight = reviewLines.length * 3.5;
+                const cardHeight = Math.max(imageHeight + 10, baseHeight + quoteHeight + reviewHeight);
+                
+                // Check Page Break
+                if (y + cardHeight > pageHeight - margin) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                const x = margin;
+
+                // Shadow
+                doc.setFillColor(230, 230, 230);
+                doc.roundedRect(x + 1.5, y + 1.5, cardWidth, cardHeight, 3, 3, 'F');
+
+                // Card Base
+                doc.setFillColor(255, 255, 255);
+                doc.setDrawColor(220, 220, 220);
+                doc.setLineWidth(0.2);
+                doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'FD');
+
+                // Draw Image (Left)
+                const img = review.cover;
+                if (img && img.startsWith('data:image')) {
+                    try {
+                        doc.addImage(img, 'JPEG', x + 5, y + 5, imageWidth, imageHeight);
+                    } catch (e) { }
+                }
+
+                // Content Area (Right)
+                const contentX = x + imageWidth + 14;
+                let textY = y + 12;
+
+                // Title
+                doc.setFont("times", "bold");
+                doc.setFontSize(16);
+                doc.setTextColor(44, 62, 80);
+                doc.text(review.title, contentX, textY);
+                textY += 7;
+
+                // Author
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`by ${review.author}`, contentX, textY);
+                textY += 9;
+
+                // Stars
+                const rating = review.rating;
+                const starSize = 2;
+                const starSpacing = 5;
+                const starDeltas = [
+                    [0.224, 0.691], [0.727, 0], [-0.588, 0.427],
+                    [0.224, 0.691], [-0.588, -0.427], [-0.588, 0.427],
+                    [0.224, -0.691], [-0.588, -0.427], [0.727, 0], [0.224, -0.691]
+                ];
+                
+                for(let i = 0; i < 5; i++) {
+                    const starCX = contentX + (i * starSpacing);
+                    const starCY = textY;
+                    const startX = starCX;
+                    const startY = starCY - starSize;
+                    const fillAmount = Math.max(0, Math.min(1, rating - i));
+                    const scaledDeltas = starDeltas.map(d => [d[0] * starSize, d[1] * starSize]);
+                    
+                    doc.setLineWidth(0.3);
+                    
+                    if (fillAmount >= 1) {
+                        doc.setFillColor(50, 50, 50);
+                        doc.setDrawColor(50, 50, 50);
+                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
+                    } else if (fillAmount >= 0.5) {
+                        doc.setFillColor(50, 50, 50);
+                        doc.setDrawColor(50, 50, 50);
+                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
+                        doc.setFillColor(255, 255, 255);
+                        doc.rect(starCX, starCY - starSize - 0.5, starSize * 1.2, starSize * 2.5, 'F');
+                        doc.setDrawColor(50, 50, 50);
+                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'S', true);
+                    } else {
+                        doc.setDrawColor(50, 50, 50);
+                        doc.setFillColor(255, 255, 255);
+                        doc.lines(scaledDeltas, startX, startY, [1, 1], 'FD', true);
+                    }
+                }
+                textY += 6;
+
+                // Date
+                doc.setTextColor(120);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                const dateText = `${formatDate(review.startDate)} - ${formatDate(review.endDate)}`;
+                doc.text(dateText, contentX, textY);
+                textY += 7;
+
+                // Quote (FULL - no line limit)
+                if (review.quote) {
+                    doc.setTextColor(80);
+                    doc.setFontSize(10);
+                    doc.setFont("times", "italic");
+                    quoteLines.forEach((line, lineIndex) => {
+                        doc.text(line, contentX, textY + (lineIndex * 4));
+                    });
+                    textY += (quoteLines.length * 4) + 3;
+                }
+
+                // Review text (FULL - no line limit)
+                if (review.review) {
+                    doc.setTextColor(60);
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "normal");
+                    reviewLines.forEach((line, lineIndex) => {
+                        doc.text(line, contentX, textY + (lineIndex * 4));
+                    });
+                }
+
+                // Genre Badge
+                if (review.genre) {
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(8);
+                    const genreWidth = doc.getTextWidth(review.genre) + 6;
+                    const badgeX = x + cardWidth - genreWidth - 4;
+                    const badgeY = y + 4;
+                    
+                    doc.setFillColor(240, 240, 240);
+                    doc.roundedRect(badgeX, badgeY, genreWidth, 6, 3, 3, 'F');
+                    doc.setTextColor(80);
+                    doc.text(review.genre, badgeX + 3, badgeY + 4);
+                }
+
+                // Move to next card
+                y += cardHeight + 10;
+            });
+
+            doc.save(`reading_journal_${new Date().toISOString().slice(0,10)}.pdf`);
+        } catch (e) {
+            console.error("PDF Export Error", e);
+            alert("Failed to generate PDF. check console.");
+        } finally {
+            if(loadingOverlay) loadingOverlay.classList.add('hidden');
+        }
+    }, 100);
 }
 
 function shareReview(review) {
@@ -1103,35 +1328,118 @@ function shareReview(review) {
             return;
         }
         
-        // Create a temporary element for PDF generation
-        const element = document.createElement('div');
-        element.innerHTML = `
-            <div style="padding: 20px; font-family: sans-serif;">
-                <h1 style="text-align: center; margin-bottom: 20px;">My Want To Read List</h1>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                    ${wishlist.map(book => `
-                        <div style="border: 1px solid #ddd; padding: 10px; display: flex; gap: 15px; align-items: start;">
-                            ${book.cover ? `<img src="${book.cover}" style="width: 60px; height: 90px; object-fit: cover;">` : ''}
-                            <div>
-                                <h3 style="margin: 0 0 5px 0;">${book.title}</h3>
-                                <p style="margin: 0; color: #555;">by ${book.author}</p>
-                                ${book.link ? `<a href="${book.link}" style="font-size: 0.8rem; color: blue;">Link</a>` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+        if(loadingOverlay) loadingOverlay.classList.remove('hidden');
 
-        const opt = {
-            margin:       10,
-            filename:     'my-wishlist.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+        setTimeout(() => {
+            try {
+                // Robust check
+                const jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+                
+                if (!jsPDF) {
+                     console.error("jsPDF not found in window");
+                    alert("PDF Library error. Please reload.");
+                    if(loadingOverlay) loadingOverlay.classList.add('hidden');
+                    return;
+                }
+                const doc = new jsPDF();
+                
+                // Header
+                doc.setFontSize(22);
+                doc.setTextColor(44, 62, 80);
+                doc.text("My Want To Read List", 14, 22);
+                
+                doc.setFontSize(11);
+                doc.setTextColor(100);
+                doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
 
-        html2pdf().set(opt).from(element).save();
+                // Table
+                // Grid Layout Settings
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 14;
+                const gap = 8;
+                const cardWidth = (pageWidth - (margin * 2) - gap) / 2;
+                const cardHeight = 40; // Smaller for wishlist
+                const imageWidth = 26;
+                const imageHeight = 34; // Smaller cover
+                
+                let x = margin;
+                let y = 40; 
+                let col = 0;
+
+                wishlist.forEach((book, index) => {
+                     // Check Page Break
+                    if (y + cardHeight > doc.internal.pageSize.getHeight() - margin) {
+                        doc.addPage();
+                        y = 20; 
+                    }
+
+                    // Calc X
+                    x = margin + (col * (cardWidth + gap));
+
+                    // Draw Card
+                    doc.setDrawColor(220, 220, 220);
+                    doc.setLineWidth(0.5);
+                    doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'S');
+
+                    // Draw Image
+                    const img = book.cover;
+                    if (img && img.startsWith('data:image')) {
+                        try {
+                            const imgY = y + (cardHeight - imageHeight) / 2;
+                            doc.addImage(img, 'JPEG', x + 4, imgY, imageWidth, imageHeight);
+                        } catch (e) { }
+                    }
+
+                    // Content
+                    const contentX = x + imageWidth + 8;
+                    let textY = y + 12;
+
+                    // Title (wrap to multiple lines if needed)
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(11);
+                    doc.setTextColor(44, 62, 80);
+                    const maxTitleWidth = cardWidth - imageWidth - 12;
+                    const titleLines = doc.splitTextToSize(book.title, maxTitleWidth);
+                    titleLines.slice(0, 2).forEach((line, lineIndex) => {
+                        doc.text(line, contentX, textY + (lineIndex * 5));
+                    });
+                    textY += (Math.min(titleLines.length, 2) * 5) + 1;
+
+                    // Author (wrap to multiple lines if needed)
+                    doc.setFont("helvetica", "italic");
+                    doc.setFontSize(9);
+                    doc.setTextColor(100);
+                    const maxAuthorWidth = cardWidth - imageWidth - 12; // Available width
+                    const authorLines = doc.splitTextToSize(book.author, maxAuthorWidth);
+                    authorLines.slice(0, 2).forEach((line, lineIndex) => {
+                        doc.text(line, contentX, textY + (lineIndex * 4));
+                    });
+                    textY += (Math.min(authorLines.length, 2) * 4) + 2;
+
+                    // Link
+                     if (book.link) {
+                        doc.setTextColor(52, 152, 219);
+                        doc.setFont("helvetica", "normal");
+                        doc.setFontSize(8);
+                        doc.textWithLink("View Book Link", contentX, textY, { url: book.link });
+                    }
+
+                    // Move Cursor
+                    col++;
+                    if (col > 1) {
+                        col = 0;
+                        y += cardHeight + gap;
+                    }
+                });
+
+                doc.save('my-wishlist.pdf');
+            } catch (e) {
+                console.error("Wishlist Export Error", e);
+                alert("Failed to export wishlist.");
+            } finally {
+                 if(loadingOverlay) loadingOverlay.classList.add('hidden');
+            }
+        }, 100);
     }
     function printWishlist() {
          if(!wishlist || wishlist.length === 0) {
@@ -1140,6 +1448,10 @@ function shareReview(review) {
         }
 
         const printWindow = window.open('', '_blank');
+         if (!printWindow) {
+            alert("Print popup was blocked. Please allow popups for this site.");
+            return;
+        }
         
         const listHtml = wishlist.map(book => `
             <div class="book-item">
@@ -1152,7 +1464,7 @@ function shareReview(review) {
             </div>
         `).join('');
 
-        printWindow.document.write(`
+        const htmlContent = `
             <html>
             <head>
                 <title>My Want To Read List</title>
@@ -1173,12 +1485,19 @@ function shareReview(review) {
                 <h1>My Want To Read List</h1>
                 ${listHtml}
                 <script>
-                    window.onload = function() { window.print(); }
+                    window.onload = function() { 
+                        setTimeout(() => {
+                             window.print(); 
+                        }, 500);
+                    }
                 </script>
             </body>
             </html>
-        `);
+        `;
+        
+        printWindow.document.write(htmlContent);
         printWindow.document.close();
+        printWindow.focus();
     }
 
     // END: Wishlist Share & Export

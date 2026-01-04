@@ -1,13 +1,11 @@
-const CACHE_NAME = 'book-journal-v7';
+const CACHE_NAME = 'book-journal-v12';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './script.js',
   './analytics.js',
-  './firebase-config.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap'
+  './firebase-config.js'
 ];
 
 self.addEventListener('install', (event) => {
