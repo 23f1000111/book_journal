@@ -81,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Initial Analytics Update
             if (window.updateAnalytics) window.updateAnalytics();
+
+            // Check for Share Data (Now that we are logged in)
+            handleIncomingShare();
         } else {
             // Not logged in -> Redirect
             window.location.href = 'login.html';
@@ -120,6 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // END: Handle Share Target (Moved to function)
+});
+
+function handleIncomingShare() {
     // START: Handle Share Target (Incoming Data from other apps)
     const urlParams = new URLSearchParams(window.location.search);
     const sharedTitle = urlParams.get('title');
@@ -149,7 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     bookLink = matches[0];
                     // If title is missing, use the non-url part of text as title
                     if (!bookTitle) {
-                        bookTitle = sharedText.replace(bookLink, '').trim();
+                         // Clean common prefixes
+                        let cleanText = sharedText.replace(bookLink, '').trim();
+                        // Common android share prefixes like "Check out this book:"
+                        cleanText = cleanText.replace(/Check out this book:?/i, '').trim();
+                        bookTitle = cleanText;
                     }
                 } else if (!bookTitle) {
                      // No URL found, treat entire text as title
@@ -158,12 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 3. Open Modal and Fill
-            // Since we are in the module, call function directly. 
-            // openWishlistModal is hoisted or available if defined in this scope.
-            // (Wait, openWishlistModal is function decl at bottom? Yes, hoisted in module scope?) 
-            // Actually function declarations are block-scoped in strict mode (modules are strict).
-            // But top level is fine.
-            
              openWishlistModal(); // Opens empty
              // Now fill it
              setTimeout(() => {
@@ -177,10 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clean URL so refresh doesn't trigger again
             window.history.replaceState({}, document.title, window.location.pathname);
 
-        }, 1500); // 1.5s delay to ensure auth state is resolved and UI rendered
+        }, 500); // reduced delay as we are inside auth block
     }
-    // END: Handle Share Target
-});
+}
+
 
 
 // --- Firestore Methods ---
