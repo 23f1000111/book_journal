@@ -1384,3 +1384,159 @@ input:focus, select:focus, textarea:focus {
     font-size: 1.2rem;
     font-weight: 500;
 }
+
+/* ========================================
+   ENHANCED MOBILE STYLES 
+   ======================================== */
+
+/* Small phones (max-width: 480px) */
+@media (max-width: 480px) {
+    /* Larger touch targets for buttons */
+    .btn, .btn-primary, .btn-outlined, .btn-outlined-sm {
+        min-height: 48px;
+        padding: 12px 20px;
+        font-size: 1rem;
+    }
+
+    /* Better spacing for main content */
+    .main-content {
+        padding: 0.75rem;
+    }
+
+    /* Review card improvements */
+    .review-card {
+        padding: 0.75rem;
+    }
+
+    .card-cover {
+        height: 160px;
+    }
+
+    .card-details h3 {
+        font-size: 1.1rem;
+    }
+
+    .card-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .card-actions button {
+        flex: 1;
+        min-width: 40px;
+        min-height: 44px;
+    }
+
+    /* Top bar adjustments */
+    .top-bar h1 {
+        font-size: 1.3rem;
+    }
+
+    .search-input {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    /* Modal improvements for small screens */
+    .modal-content {
+        padding: 0.75rem;
+    }
+
+    .modal-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Star rating larger touch area */
+    .star {
+        font-size: 2rem;
+        padding: 5px;
+    }
+
+    /* Wishlist card improvements */
+    .wishlist-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .wishlist-cover {
+        height: 220px;
+    }
+
+    .wishlist-details {
+        padding: 0.75rem;
+    }
+
+    .wishlist-title {
+        font-size: 1rem;
+    }
+
+    /* Dashboard stats */
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-number {
+        font-size: 1.8rem;
+    }
+
+    /* Fix text overflow */
+    .card-details p,
+    .card-details h3 {
+        word-break: break-word;
+    }
+}
+
+/* Medium phones and larger touch devices */
+@media (max-width: 768px) and (min-width: 481px) {
+    .btn, .btn-primary, .btn-outlined {
+        min-height: 44px;
+        padding: 10px 16px;
+    }
+
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    .wishlist-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Improve tap feedback */
+@media (hover: none) and (pointer: coarse) {
+    .btn:active,
+    .review-card:active,
+    .wishlist-card:active,
+    .nav-links a:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+
+    /* Disable hover effects on touch */
+    .review-card:hover,
+    .wishlist-card:hover {
+        transform: none;
+    }
+}
+
+/* Safe area for notched phones */
+@supports (padding: max(0px)) {
+    .sidebar {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .main-content {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+}
