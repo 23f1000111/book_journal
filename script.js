@@ -54,7 +54,7 @@ let currentUser = null;
 let reviews = [];
 let wishlist = [];
 let yearlyGoals = {}; // Map of year -> goal
-let currentYearFilter = new Date().getFullYear(); 
+let currentYearFilter = new Date().getFullYear();
 let friends = [];
 let deferredPrompt; // For PWA install
 
