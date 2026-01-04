@@ -1,4 +1,4 @@
-const CACHE_NAME = 'book-journal-v1';
+const CACHE_NAME = 'book-journal-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
